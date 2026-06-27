@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-size: 17px;
+    -webkit-tap-highlight-color: transparent;
+    /* Evita rebote/pull-to-refresh en Safari */
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    @apply bg-beige-50 text-gray-800 antialiased;
+    background-image: radial-gradient(ellipse at 80% 0%, #f0f7f0 0%, transparent 60%),
+                      radial-gradient(ellipse at 20% 100%, #fffbf0 0%, transparent 60%);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Elimina el retraso de 300ms en taps (navegadores modernos) */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Evita que iOS haga zoom al enfocar inputs (requiere font-size ≥ 16px) */
+  input, select, textarea {
+    font-size: max(1rem, 16px);
+  }
+}
+
+@layer utilities {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .safe-area-pl {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  .safe-area-pr {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+}
