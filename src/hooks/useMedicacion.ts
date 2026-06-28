@@ -118,6 +118,22 @@ export function useMedicacion() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
+  const editar = async (id: string, datos: Omit<Medicacion, "id" | "completadasEn">) => {
+    if (!sesion) {
+      setMedicacionesLocal((prev) =>
+        prev.map((m) => m.id === id ? { ...m, ...datos } : m)
+      );
+      return;
+    }
+    setMedicacionesRemoto((prev) =>
+      prev.map((m) => m.id === id ? { ...m, ...datos } : m)
+    );
+    await supabase.from("medicaciones").update({
+      nombre: datos.nombre, horas: datos.horas, dosis: datos.dosis,
+      fecha_inicio: datos.fechaInicio, fecha_fin: datos.fechaFin,
+    }).eq("id", id).eq("grupo_id", sesion.grupoId);
+  };
+
   const eliminar = async (id: string) => {
     if (!sesion) {
       setMedicacionesLocal((prev) => prev.filter((m) => m.id !== id));
@@ -127,5 +143,5 @@ export function useMedicacion() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { medicaciones: todas, tomadaHoy, todasTomadas, agregar, toggleToma, eliminar };
+  return { medicaciones: todas, tomadaHoy, todasTomadas, agregar, editar, toggleToma, eliminar };
 }

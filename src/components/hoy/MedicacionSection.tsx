@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Check, Plus, Trash2, Pill, CalendarRange, Clock, X } from "lucide-react";
+import { Check, Plus, Trash2, Pencil, Pill, CalendarRange, Clock, X } from "lucide-react";
+import type { Medicacion } from "@/types";
 import { useMedicacion } from "@/hooks/useMedicacion";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -39,10 +40,11 @@ function diasRestantes(fechaFin: string): number {
 // ── Componente ───────────────────────────────────────────────────────────────
 
 export function MedicacionSection() {
-  const { medicaciones, tomadaHoy, todasTomadas, agregar, toggleToma, eliminar } =
+  const { medicaciones, tomadaHoy, todasTomadas, agregar, editar, toggleToma, eliminar } =
     useMedicacion();
 
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editandoId, setEditandoId]     = useState<string | null>(null);
   const [nombre, setNombre]             = useState("");
   const [horas, setHoras]               = useState<string[]>(["08:00"]);
   const [dosis, setDosis]               = useState("");
@@ -50,6 +52,24 @@ export function MedicacionSection() {
   const [fechaFinCustom, setFechaFinCustom] = useState("");
 
   const hoyStr = new Date().toISOString().split("T")[0];
+
+  const abrirNuevo = () => {
+    setEditandoId(null);
+    setNombre(""); setHoras(["08:00"]); setDosis("");
+    setDuracionIdx(2); setFechaFinCustom("");
+    setModalAbierto(true);
+  };
+
+  const abrirEdicion = (med: Medicacion) => {
+    setEditandoId(med.id);
+    setNombre(med.nombre);
+    setHoras([...med.horas]);
+    setDosis(med.dosis);
+    // Calcular duración aproximada para preseleccionar botón
+    setDuracionIdx(-1);
+    setFechaFinCustom(med.fechaFin);
+    setModalAbierto(true);
+  };
 
   // Gestión de horas en el formulario
   const addHora  = () => setHoras((h) => [...h, "08:00"]);
@@ -66,16 +86,15 @@ export function MedicacionSection() {
       duracionIdx === -1
         ? fechaFinCustom || hoyStr
         : sumarDias(hoyStr, DURACIONES[duracionIdx].dias);
-    agregar({
-      nombre: nombre.trim(),
-      horas: horasOrdenadas,
-      dosis: dosis.trim(),
-      fechaInicio: hoyStr,
-      fechaFin,
-    });
-    // Reset
-    setNombre(""); setHoras(["08:00"]); setDosis("");
-    setDuracionIdx(2); setFechaFinCustom("");
+    const datos = {
+      nombre: nombre.trim(), horas: horasOrdenadas,
+      dosis: dosis.trim(), fechaInicio: hoyStr, fechaFin,
+    };
+    if (editandoId) {
+      editar(editandoId, datos);
+    } else {
+      agregar(datos);
+    }
     setModalAbierto(false);
   };
 
@@ -89,7 +108,7 @@ export function MedicacionSection() {
           <Pill size={18} className="text-sage-500" />
           <h2 className="text-lg font-semibold text-gray-800">Medicación de hoy</h2>
         </div>
-        <Button variante="fantasma" tamaño="sm" onClick={() => setModalAbierto(true)}>
+        <Button variante="fantasma" tamaño="sm" onClick={abrirNuevo}>
           <Plus size={16} /> Añadir
         </Button>
       </div>
@@ -128,13 +147,22 @@ export function MedicacionSection() {
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => eliminar(med.id)}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
-                    aria-label="Eliminar medicamento"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex flex-shrink-0">
+                    <button
+                      onClick={() => abrirEdicion(med)}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-sage-500 transition-colors"
+                      aria-label="Editar medicamento"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => eliminar(med.id)}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors"
+                      aria-label="Eliminar medicamento"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Una fila por hora */}
@@ -175,7 +203,7 @@ export function MedicacionSection() {
             );
           })}
           <button
-            onClick={() => setModalAbierto(true)}
+            onClick={abrirNuevo}
             className="w-full text-sm text-sage-600 hover:text-sage-700 py-2 text-center font-medium transition-colors"
           >
             + ¿Toma más medicamentos? Añadir otro
@@ -187,7 +215,7 @@ export function MedicacionSection() {
       <Modal
         abierto={modalAbierto}
         onCerrar={() => setModalAbierto(false)}
-        titulo="Añadir medicación"
+        titulo={editandoId ? "Editar medicación" : "Añadir medicación"}
       >
         <div className="space-y-5">
 
