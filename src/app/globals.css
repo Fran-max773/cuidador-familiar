@@ -32,6 +32,33 @@
   }
 }
 
+@media print {
+  /* Ocultar navegación y controles */
+  header, nav, .no-print {
+    display: none !important;
+  }
+  /* Resetear el padding del main para que ocupe el A4 */
+  main {
+    max-width: 100% !important;
+    padding: 0 1.5cm !important;
+    padding-bottom: 1cm !important;
+  }
+  body {
+    background: white !important;
+    font-size: 11pt;
+  }
+  /* Salto de página entre meses */
+  .print-month {
+    break-inside: avoid;
+  }
+  /* Salto de página entre medicamentos distintos */
+  .print-section {
+    break-before: auto;
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+  }
+}
+
 @layer utilities {
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0);

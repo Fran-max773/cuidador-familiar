@@ -10,6 +10,7 @@ const rutas: Record<string, string> = {
   "/perfil":      "Perfil",
   "/emergencias": "Emergencias",
   "/grupo":       "Grupo familiar",
+  "/historial":   "Historial e impresión",
 };
 
 export function Header() {
