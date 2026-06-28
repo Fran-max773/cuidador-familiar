@@ -17,18 +17,20 @@ export function Header() {
   const esHome = pathname === "/";
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border-b border-beige-200 safe-area-pt">
+    <header className="sticky top-0 z-40 safe-area-pt bg-gradient-to-r from-sky-500 to-sky-400 shadow-sm">
       <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2 text-sage-500 flex-shrink-0">
+        <Link href="/" className="flex items-center gap-2 text-white/90 flex-shrink-0">
           <Heart size={22} fill="currentColor" />
         </Link>
         {esHome ? (
           <div>
-            <p className="text-base font-bold text-sage-700 leading-tight">Cuidador Familiar</p>
-            <p className="text-xs text-gray-400 leading-tight">Tu apoyo día a día</p>
+            <p className="text-base font-bold text-white leading-tight tracking-wide">
+              Cuidador Familiar
+            </p>
+            <p className="text-xs text-sky-100 leading-tight">Tu apoyo día a día</p>
           </div>
         ) : (
-          <h1 className="text-lg font-semibold text-gray-800">
+          <h1 className="text-lg font-semibold text-white">
             {rutas[pathname] ?? "Cuidador Familiar"}
           </h1>
         )}
