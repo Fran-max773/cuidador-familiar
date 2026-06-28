@@ -50,7 +50,12 @@ export function TareasSection() {
 
       {tareas.length === 0 ? (
         <Card>
-          <p className="text-gray-400 text-center py-2">No hay tareas para hoy. ¡Bien!</p>
+          <p className="text-gray-500 text-center font-medium py-1">
+            Anota lo que hay que hacer hoy.
+          </p>
+          <p className="text-gray-400 text-sm text-center mt-1">
+            Ej: Llamar al médico · Comprar pañales · Lavar ropa de cama
+          </p>
         </Card>
       ) : (
         <div className="space-y-2">

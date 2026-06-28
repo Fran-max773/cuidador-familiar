@@ -55,7 +55,12 @@ export function CitasSection() {
 
       {citas.length === 0 ? (
         <Card>
-          <p className="text-gray-400 text-center py-2">No hay citas próximas registradas.</p>
+          <p className="text-gray-500 text-center font-medium py-1">
+            Anota las citas con fecha y hora fija.
+          </p>
+          <p className="text-gray-400 text-sm text-center mt-1">
+            Ej: Neurólogo · Análisis de sangre · Fisioterapia
+          </p>
         </Card>
       ) : (
         <div className="space-y-2">
