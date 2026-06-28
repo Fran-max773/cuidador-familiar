@@ -18,6 +18,7 @@ const DURACIONES = [
 
 // Atajos para rellenar varias horas de golpe
 const ATAJOS_HORAS = [
+  { label: "1 al día (×1)",  horas: ["08:00"] },
   { label: "Cada 12h (×2)", horas: ["08:00", "20:00"] },
   { label: "Cada 8h (×3)",  horas: ["08:00", "14:00", "22:00"] },
   { label: "Cada 6h (×4)",  horas: ["08:00", "14:00", "20:00", "02:00"] },
