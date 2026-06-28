@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { User, Save, Phone, Stethoscope, Pill, AlertTriangle, Plus, Trash2, FileText } from "lucide-react";
+import { User, Save, Phone, Stethoscope, Pill, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import type { PerfilFamiliar, ContactoEmergencia } from "@/types";
@@ -190,14 +189,6 @@ export default function PerfilPage() {
         <Save size={18} />
         {guardado ? "¡Guardado!" : "Guardar perfil"}
       </Button>
-
-      <Link
-        href="/historial"
-        className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border-2 border-dashed border-sky-200 text-sky-600 hover:bg-sky-50 transition-colors font-medium"
-      >
-        <FileText size={20} />
-        Ver historial e imprimir registros
-      </Link>
     </div>
   );
 }

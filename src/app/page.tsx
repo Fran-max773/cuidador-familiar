@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import { FileText } from "lucide-react";
 import { MedicacionSection } from "@/components/hoy/MedicacionSection";
 import { TareasSection } from "@/components/hoy/TareasSection";
 import { CitasSection } from "@/components/hoy/CitasSection";
@@ -26,6 +28,14 @@ export default function HoyPage() {
       <MedicacionSection />
       <TareasSection />
       <CitasSection />
+
+      <Link
+        href="/historial"
+        className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border-2 border-dashed border-sky-200 text-sky-600 hover:bg-sky-50 active:bg-sky-100 transition-colors font-medium text-sm"
+      >
+        <FileText size={18} />
+        Ver historial e imprimir registros
+      </Link>
     </div>
   );
 }
