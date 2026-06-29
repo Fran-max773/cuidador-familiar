@@ -57,8 +57,12 @@ CREATE TABLE citas (
   hora      text NOT NULL,
   lugar     text DEFAULT '',
   notas     text DEFAULT '',
+  realizada boolean DEFAULT false,
   creado_en timestamptz DEFAULT now()
 );
+
+-- Migración: añadir columna realizada si la tabla ya existe
+ALTER TABLE citas ADD COLUMN IF NOT EXISTS realizada boolean DEFAULT false;
 
 -- Permitir acceso público (la seguridad la da el código del grupo)
 ALTER TABLE grupos     ENABLE ROW LEVEL SECURITY;

@@ -126,7 +126,11 @@ export function useGrupo() {
       setSesionState(s);
       return true;
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error al crear el grupo.");
+      const msg = e instanceof Error ? e.message
+        : (typeof e === "object" && e !== null && "message" in e)
+          ? String((e as { message: unknown }).message)
+          : "Error al crear el grupo.";
+      setError(msg);
       return false;
     } finally { setCargando(false); }
   };
@@ -159,7 +163,11 @@ export function useGrupo() {
       setSesionState(s);
       return true;
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error al unirse al grupo.");
+      const msg = e instanceof Error ? e.message
+        : (typeof e === "object" && e !== null && "message" in e)
+          ? String((e as { message: unknown }).message)
+          : "Error al unirse al grupo.";
+      setError(msg);
       return false;
     } finally { setCargando(false); }
   };
