@@ -53,7 +53,7 @@ export function useMedicacion() {
         filter: `grupo_id=eq.${sesion.grupoId}` },
         (payload) => {
           if (payload.eventType === "INSERT")
-            setMedicacionesRemoto((p) => [...p, fromDb(payload.new)]);
+            setMedicacionesRemoto((p) => p.some((m) => m.id === payload.new.id) ? p : [...p, fromDb(payload.new)]);
           else if (payload.eventType === "UPDATE")
             setMedicacionesRemoto((p) => p.map((m) => m.id === payload.new.id ? fromDb(payload.new) : m));
           else if (payload.eventType === "DELETE")

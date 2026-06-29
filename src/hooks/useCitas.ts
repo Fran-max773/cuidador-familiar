@@ -46,8 +46,9 @@ export function useCitas() {
         filter: `grupo_id=eq.${sesion.grupoId}` },
         (payload) => {
           if (payload.eventType === "INSERT")
-            setCitasRemoto((p) => [...p, fromDb(payload.new)].sort((a, b) =>
-              `${a.fecha}${a.hora}`.localeCompare(`${b.fecha}${b.hora}`)));
+            setCitasRemoto((p) => p.some((c) => c.id === payload.new.id) ? p :
+              [...p, fromDb(payload.new)].sort((a, b) =>
+                `${a.fecha}${a.hora}`.localeCompare(`${b.fecha}${b.hora}`)));
           else if (payload.eventType === "UPDATE")
             setCitasRemoto((p) => p.map((c) => c.id === payload.new.id ? fromDb(payload.new) : c));
           else if (payload.eventType === "DELETE")

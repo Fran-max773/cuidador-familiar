@@ -46,7 +46,7 @@ export function useTareas() {
         filter: `grupo_id=eq.${sesion.grupoId}` },
         (payload) => {
           if (payload.eventType === "INSERT")
-            setTareasRemoto((p) => [...p, fromDb(payload.new)]);
+            setTareasRemoto((p) => p.some((t) => t.id === payload.new.id) ? p : [...p, fromDb(payload.new)]);
           else if (payload.eventType === "UPDATE")
             setTareasRemoto((p) => p.map((t) => t.id === payload.new.id ? fromDb(payload.new) : t));
           else if (payload.eventType === "DELETE")
