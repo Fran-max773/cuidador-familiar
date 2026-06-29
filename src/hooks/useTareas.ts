@@ -68,11 +68,10 @@ export function useTareas() {
       ]);
       return;
     }
-    const { data } = await supabase.from("tareas").insert({
+    await supabase.from("tareas").insert({
       grupo_id: sesion.grupoId, texto, completada: false,
       fecha: HOY, prioridad, completada_por: "", asignada_a: "",
-    }).select().single();
-    if (data) setTareasRemoto((p) => [...p, fromDb(data)]);
+    });
   };
 
   const toggleCompletar = async (id: string) => {

@@ -82,13 +82,12 @@ export function useMedicacion() {
       ]);
       return;
     }
-    const { data } = await supabase.from("medicaciones").insert({
+    await supabase.from("medicaciones").insert({
       grupo_id: sesion.grupoId,
       nombre: datos.nombre, horas: datos.horas, dosis: datos.dosis,
       fecha_inicio: datos.fechaInicio, fecha_fin: datos.fechaFin,
       completadas_en: [],
-    }).select().single();
-    if (data) setMedicacionesRemoto((p) => [...p, fromDb(data)]);
+    });
   };
 
   const toggleToma = async (id: string, hora: string) => {
