@@ -328,10 +328,10 @@ export default function HistorialPage() {
     ? `Historial de cuidados — ${perfil.nombre}`
     : "Historial de cuidados — Cuidador Familiar";
 
-  const tabs: { id: Tab; label: string; Icon: React.ElementType }[] = [
-    { id: "tareas",     label: "Tareas",     Icon: ClipboardList },
-    { id: "medicacion", label: "Medicación", Icon: Pill          },
-    { id: "citas",      label: "Citas",      Icon: CalendarDays  },
+  const tabs: { id: Tab; label: string; Icon: React.ElementType; color: string; colorInactivo: string }[] = [
+    { id: "tareas",     label: "Tareas",     Icon: ClipboardList, color: "bg-sage-500 text-white shadow-sm",   colorInactivo: "bg-sage-50 text-sage-600 hover:bg-sage-100"   },
+    { id: "medicacion", label: "Medicación", Icon: Pill,          color: "bg-purple-500 text-white shadow-sm", colorInactivo: "bg-purple-50 text-purple-600 hover:bg-purple-100" },
+    { id: "citas",      label: "Citas",      Icon: CalendarDays,  color: "bg-sky-500 text-white shadow-sm",    colorInactivo: "bg-sky-50 text-sky-600 hover:bg-sky-100"       },
   ];
 
   return (
@@ -368,16 +368,14 @@ export default function HistorialPage() {
           </div>
 
           {/* Pestañas */}
-          <div className="flex bg-beige-50 rounded-2xl p-1 gap-1">
-            {tabs.map(({ id, label, Icon }) => (
+          <div className="flex gap-2">
+            {tabs.map(({ id, label, Icon, color, colorInactivo }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium transition-all",
-                  tab === id
-                    ? "bg-white text-gray-800 shadow-sm"
-                    : "text-gray-400 hover:text-gray-600"
+                  "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-sm font-semibold transition-all",
+                  tab === id ? color : colorInactivo
                 )}
               >
                 <Icon size={15} />

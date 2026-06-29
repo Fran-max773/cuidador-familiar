@@ -77,3 +77,4 @@ CREATE POLICY "acceso_publico" ON citas       FOR ALL USING (true) WITH CHECK (t
 
 -- Activar realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE medicaciones, tareas, citas, perfil;
+

@@ -26,6 +26,7 @@ export interface Cita {
   hora: string;
   lugar?: string;
   notas?: string;
+  realizada?: boolean;
 }
 
 export interface ContactoEmergencia {

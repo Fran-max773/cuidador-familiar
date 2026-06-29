@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { CalendarDays, Plus, Trash2, MapPin } from "lucide-react";
+import { CalendarDays, Plus, Trash2, MapPin, Check, Clock } from "lucide-react";
 import { useCitas } from "@/hooks/useCitas";
 import type { Cita } from "@/types";
 import { Card } from "@/components/ui/Card";
@@ -23,7 +23,8 @@ const COLORES_TIPO: Record<Cita["tipo"], string> = {
 };
 
 export function CitasSection() {
-  const { citas, agregar, eliminar } = useCitas();
+  const { citas, agregar, marcarRealizada, eliminar } = useCitas();
+  const hoy = new Date().toISOString().split("T")[0];
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState<Omit<Cita, "id">>({
     tipo: "medico",
@@ -64,12 +65,13 @@ export function CitasSection() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {citas.slice(0, 5).map((cita) => {
+          {citas.slice(0, 8).map((cita) => {
             const dias = diasHasta(cita.fecha);
+            const pasada = cita.fecha < hoy;
             return (
-              <Card key={cita.id} className="flex items-start gap-4">
+              <Card key={cita.id} className={`flex items-start gap-4 ${pasada && !cita.realizada ? "border-amber-200 bg-amber-50/40" : ""} ${cita.realizada ? "opacity-60" : ""}`}>
                 <div className="flex-shrink-0 text-center w-12">
-                  <p className="text-2xl font-bold text-sage-600 leading-none">
+                  <p className={`text-2xl font-bold leading-none ${pasada ? "text-amber-500" : "text-sage-600"}`}>
                     {cita.fecha.split("-")[2]}
                   </p>
                   <p className="text-xs text-gray-400 uppercase">
@@ -77,24 +79,40 @@ export function CitasSection() {
                   </p>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${COLORES_TIPO[cita.tipo]}`}>
                       {TIPOS.find((t) => t.valor === cita.tipo)?.etiqueta}
                     </span>
-                    {dias === 0 && <span className="text-xs text-sage-600 font-medium">Hoy</span>}
-                    {dias === 1 && <span className="text-xs text-amber-600 font-medium">Mañana</span>}
-                    {dias > 1 && <span className="text-xs text-gray-400">En {dias} días</span>}
+                    {cita.realizada && <span className="text-xs text-sage-600 font-medium">✓ Realizada</span>}
+                    {!cita.realizada && dias === 0 && <span className="text-xs text-sage-600 font-medium flex items-center gap-1"><Clock size={10}/>Hoy</span>}
+                    {!cita.realizada && dias === 1 && <span className="text-xs text-amber-600 font-medium">Mañana</span>}
+                    {!cita.realizada && dias > 1 && <span className="text-xs text-gray-400">En {dias} días</span>}
+                    {!cita.realizada && pasada && <span className="text-xs text-amber-600 font-medium">Pendiente de confirmar</span>}
                   </div>
-                  <p className="font-medium text-gray-800">{cita.titulo}</p>
+                  <p className={`font-medium ${cita.realizada ? "line-through text-gray-400" : "text-gray-800"}`}>{cita.titulo}</p>
                   <p className="text-sm text-gray-500">{cita.hora}{cita.lugar ? ` · ` : ""}{cita.lugar && (
                     <span className="inline-flex items-center gap-0.5">
                       <MapPin size={12} />{cita.lugar}
                     </span>
                   )}</p>
+                  {/* Botón de check — solo para citas pasadas */}
+                  {pasada && (
+                    <button
+                      onClick={() => marcarRealizada(cita.id, !cita.realizada)}
+                      className={`mt-2 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
+                        cita.realizada
+                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          : "bg-sage-500 text-white hover:bg-sage-600"
+                      }`}
+                    >
+                      <Check size={12} strokeWidth={3} />
+                      {cita.realizada ? "Desmarcar" : "Marcar como realizada"}
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={() => eliminar(cita.id)}
-                  className="p-2 text-gray-300 hover:text-red-400 transition-colors"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
                   aria-label="Eliminar cita"
                 >
                   <Trash2 size={16} />

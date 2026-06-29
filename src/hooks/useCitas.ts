@@ -5,18 +5,19 @@ import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
 import type { Cita } from "@/types";
 
-const HOY = new Date().toISOString().split("T")[0];
+function hoyStr() { return new Date().toISOString().split("T")[0]; }
+function hace7dias() {
+  const d = new Date(); d.setDate(d.getDate() - 7);
+  return d.toISOString().split("T")[0];
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromDb(r: any): Cita {
   return {
-    id: r.id,
-    tipo: r.tipo,
-    titulo: r.titulo,
-    fecha: r.fecha,
-    hora: r.hora,
-    lugar: r.lugar ?? "",
-    notas: r.notas ?? "",
+    id: r.id, tipo: r.tipo, titulo: r.titulo,
+    fecha: r.fecha, hora: r.hora,
+    lugar: r.lugar ?? "", notas: r.notas ?? "",
+    realizada: r.realizada ?? false,
   };
 }
 
@@ -32,10 +33,8 @@ export function useCitas() {
 
     const cargar = async () => {
       const { data } = await supabase
-        .from("citas")
-        .select("*")
-        .eq("grupo_id", sesion.grupoId)
-        .gte("fecha", HOY)
+        .from("citas").select("*").eq("grupo_id", sesion.grupoId)
+        .gte("fecha", hace7dias())          // incluye últimos 7 días
         .order("fecha").order("hora");
       setCitasRemoto((data ?? []).map(fromDb));
     };
@@ -60,21 +59,32 @@ export function useCitas() {
     return () => { supabase.removeChannel(channel); };
   }, [sesion?.grupoId]);
 
-  const proximas = sesion
-    ? citasRemoto
+  // Mostrar: próximas + pasadas recientes no marcadas como realizadas
+  const citas = sesion
+    ? citasRemoto.filter((c) => c.fecha >= hoyStr() || !c.realizada)
     : [...citasLocal]
-        .filter((c) => c.fecha >= HOY)
+        .filter((c) => c.fecha >= hoyStr() || !c.realizada)
+        .filter((c) => c.fecha >= hace7dias())
         .sort((a, b) => `${a.fecha}${a.hora}`.localeCompare(`${b.fecha}${b.hora}`));
 
   const agregar = async (datos: Omit<Cita, "id">) => {
     if (!sesion) {
-      setCitasLocal((prev) => [...prev, { ...datos, id: crypto.randomUUID() }]);
+      setCitasLocal((prev) => [...prev, { ...datos, id: crypto.randomUUID(), realizada: false }]);
       return;
     }
     const { data } = await supabase.from("citas")
-      .insert({ grupo_id: sesion.grupoId, ...datos }).select().single();
+      .insert({ grupo_id: sesion.grupoId, ...datos, realizada: false }).select().single();
     if (data) setCitasRemoto((p) => [...p, fromDb(data)].sort((a, b) =>
       `${a.fecha}${a.hora}`.localeCompare(`${b.fecha}${b.hora}`)));
+  };
+
+  const marcarRealizada = async (id: string, realizada: boolean) => {
+    if (!sesion) {
+      setCitasLocal((prev) => prev.map((c) => c.id === id ? { ...c, realizada } : c));
+      return;
+    }
+    setCitasRemoto((p) => p.map((c) => c.id === id ? { ...c, realizada } : c));
+    await supabase.from("citas").update({ realizada }).eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
   const editar = async (id: string, datos: Partial<Omit<Cita, "id">>) => {
@@ -95,5 +105,5 @@ export function useCitas() {
     await supabase.from("citas").delete().eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { citas: proximas, agregar, editar, eliminar };
+  return { citas, agregar, marcarRealizada, editar, eliminar };
 }
