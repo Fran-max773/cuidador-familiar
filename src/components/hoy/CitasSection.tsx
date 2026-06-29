@@ -69,9 +69,9 @@ export function CitasSection() {
             const dias = diasHasta(cita.fecha);
             const pasada = cita.fecha < hoy;
             return (
-              <Card key={cita.id} className={`flex items-start gap-4 ${pasada && !cita.realizada ? "border-amber-200 bg-amber-50/40" : ""} ${cita.realizada ? "opacity-60" : ""}`}>
+              <Card key={cita.id} className={`flex items-start gap-4 ${pasada && !cita.realizada ? "border-amber-200 bg-amber-50/40" : ""} ${cita.realizada ? "border-green-200 bg-green-50/40" : ""}`}>
                 <div className="flex-shrink-0 text-center w-12">
-                  <p className={`text-2xl font-bold leading-none ${pasada ? "text-amber-500" : "text-sage-600"}`}>
+                  <p className={`text-2xl font-bold leading-none ${cita.realizada ? "text-green-600" : pasada ? "text-amber-500" : "text-sage-600"}`}>
                     {cita.fecha.split("-")[2]}
                   </p>
                   <p className="text-xs text-gray-400 uppercase">
@@ -83,13 +83,13 @@ export function CitasSection() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${COLORES_TIPO[cita.tipo]}`}>
                       {TIPOS.find((t) => t.valor === cita.tipo)?.etiqueta}
                     </span>
-                    {cita.realizada && <span className="text-xs text-sage-600 font-medium">✓ Realizada</span>}
+                    {cita.realizada && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">✓ Realizada</span>}
                     {!cita.realizada && dias === 0 && <span className="text-xs text-sage-600 font-medium flex items-center gap-1"><Clock size={10}/>Hoy</span>}
                     {!cita.realizada && dias === 1 && <span className="text-xs text-amber-600 font-medium">Mañana</span>}
                     {!cita.realizada && dias > 1 && <span className="text-xs text-gray-400">En {dias} días</span>}
                     {!cita.realizada && pasada && <span className="text-xs text-amber-600 font-medium">Pendiente de confirmar</span>}
                   </div>
-                  <p className={`font-medium ${cita.realizada ? "line-through text-gray-400" : "text-gray-800"}`}>{cita.titulo}</p>
+                  <p className={`font-medium ${cita.realizada ? "text-green-800" : "text-gray-800"}`}>{cita.titulo}</p>
                   <p className="text-sm text-gray-500">{cita.hora}{cita.lugar ? ` · ` : ""}{cita.lugar && (
                     <span className="inline-flex items-center gap-0.5">
                       <MapPin size={12} />{cita.lugar}
@@ -101,12 +101,12 @@ export function CitasSection() {
                       onClick={() => marcarRealizada(cita.id, !cita.realizada)}
                       className={`mt-2 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
                         cita.realizada
-                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                          : "bg-sage-500 text-white hover:bg-sage-600"
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-amber-500 text-white hover:bg-amber-600"
                       }`}
                     >
                       <Check size={12} strokeWidth={3} />
-                      {cita.realizada ? "Desmarcar" : "Marcar como realizada"}
+                      {cita.realizada ? "✓ Realizada — pulsa para desmarcar" : "Marcar como realizada"}
                     </button>
                   )}
                 </div>

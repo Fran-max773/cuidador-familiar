@@ -329,9 +329,9 @@ export default function HistorialPage() {
     : "Historial de cuidados — Cuidador Familiar";
 
   const tabs: { id: Tab; label: string; Icon: React.ElementType; color: string; colorInactivo: string }[] = [
-    { id: "tareas",     label: "Tareas",     Icon: ClipboardList, color: "bg-sage-500 text-white shadow-sm",   colorInactivo: "bg-sage-50 text-sage-600 hover:bg-sage-100"   },
-    { id: "medicacion", label: "Medicación", Icon: Pill,          color: "bg-purple-500 text-white shadow-sm", colorInactivo: "bg-purple-50 text-purple-600 hover:bg-purple-100" },
-    { id: "citas",      label: "Citas",      Icon: CalendarDays,  color: "bg-sky-500 text-white shadow-sm",    colorInactivo: "bg-sky-50 text-sky-600 hover:bg-sky-100"       },
+    { id: "tareas",     label: "Tareas",     Icon: ClipboardList, color: "bg-sage-500 text-white shadow-sm",   colorInactivo: "bg-sage-200 text-sage-800 hover:bg-sage-300"      },
+    { id: "medicacion", label: "Medicación", Icon: Pill,          color: "bg-purple-500 text-white shadow-sm", colorInactivo: "bg-purple-200 text-purple-800 hover:bg-purple-300" },
+    { id: "citas",      label: "Citas",      Icon: CalendarDays,  color: "bg-sky-500 text-white shadow-sm",    colorInactivo: "bg-sky-200 text-sky-800 hover:bg-sky-300"          },
   ];
 
   return (
