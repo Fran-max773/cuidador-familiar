@@ -545,11 +545,17 @@ export default function HistorialPage() {
         <style>{`
           @media print {
             @page { size: A4 landscape; margin: 6mm; }
+            /* Anular el padding del main definido en globals.css para dar toda la página al calendario */
+            main { padding: 0 !important; }
             .cal-mes-completo {
               page-break-after: always !important;
               break-after: page !important;
-              height: 196mm !important;
-              margin-bottom: 0 !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              height: 194mm !important;
+              max-height: 194mm !important;
+              overflow: hidden !important;
+              margin: 0 !important;
               border-radius: 0 !important;
             }
             .cal-mes-completo:last-child {
