@@ -300,51 +300,87 @@ function getMesesEnRango(desde: string, hasta: string): { año: number; mes: num
   const [hA, hM] = hasta.split("-").map(Number);
   let a = dA, m = dM;
   while (a < hA || (a === hA && m <= hM)) {
-    result.push({ año: a, mes: m - 1 }); // mes 0-indexed para Date
+    result.push({ año: a, mes: m - 1 });
     m++; if (m > 12) { m = 1; a++; }
   }
   return result;
 }
 
-function CalendarioMes({ año, mes, renderDia, renderDiaHeader }: {
+// Genera opciones de mes/año: 2 años atrás → 2 años adelante
+function opcionesMes(): { value: string; label: string }[] {
+  const opts: { value: string; label: string }[] = [];
+  const d = new Date(); d.setFullYear(d.getFullYear() - 2); d.setDate(1);
+  const fin = new Date(); fin.setFullYear(fin.getFullYear() + 2);
+  while (d <= fin) {
+    opts.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: `${MESES_NOMBRE[d.getMonth()]} ${d.getFullYear()}`,
+    });
+    d.setMonth(d.getMonth() + 1);
+  }
+  return opts;
+}
+const OPCIONES_MES = opcionesMes();
+
+function CalendarioMes({ año, mes, renderDia, leyenda }: {
   año: number; mes: number;
   renderDia: (fecha: string) => React.ReactNode;
-  renderDiaHeader?: React.ReactNode;
+  leyenda?: React.ReactNode;
 }) {
   const primerDia = new Date(año, mes, 1);
   const diasEnMes = new Date(año, mes + 1, 0).getDate();
-  let offset = primerDia.getDay() - 1; // lunes=0
+  let offset = primerDia.getDay() - 1;
   if (offset < 0) offset = 6;
 
   const celdas: (string | null)[] = [];
   for (let i = 0; i < offset; i++) celdas.push(null);
-  for (let d = 1; d <= diasEnMes; d++) {
+  for (let d = 1; d <= diasEnMes; d++)
     celdas.push(`${año}-${String(mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
-  }
   while (celdas.length % 7 !== 0) celdas.push(null);
 
+  const filas: (string | null)[][] = [];
+  for (let i = 0; i < celdas.length; i += 7) filas.push(celdas.slice(i, i + 7));
+
   return (
-    <div className="print-month mb-6 break-inside-avoid-page">
-      <h3 className="text-base font-bold text-gray-700 mb-2">
+    <div className="cal-mes-completo flex flex-col border border-gray-300 overflow-hidden mb-8 print:mb-0"
+         style={{ height: "440px" }}>
+      {/* Cabecera del mes */}
+      <div className="bg-sky-600 text-white text-center py-2 font-bold text-sm flex-shrink-0 print:py-1">
         {MESES_NOMBRE[mes]} {año}
-      </h3>
-      {renderDiaHeader}
-      <div className="grid grid-cols-7 border-l border-t border-gray-200 text-xs">
-        {DIAS_SEMANA.map((d) => (
-          <div key={d} className="border-r border-b border-gray-200 bg-gray-50 text-center py-1 font-semibold text-gray-500 text-[10px]">
+      </div>
+      {leyenda && (
+        <div className="px-2 py-0.5 bg-gray-50 border-b border-gray-200 flex-shrink-0 text-[9px] flex flex-wrap gap-1">
+          {leyenda}
+        </div>
+      )}
+      {/* Cabecera días semana */}
+      <div className="grid grid-cols-7 bg-gray-100 border-b border-gray-200 flex-shrink-0">
+        {DIAS_SEMANA.map((d, i) => (
+          <div key={d} className={cn("text-center py-1 text-[10px] font-semibold text-gray-600",
+            i < 6 && "border-r border-gray-200")}>
             {d}
           </div>
         ))}
-        {celdas.map((fecha, i) => (
-          <div key={i} className="border-r border-b border-gray-200 min-h-[56px] p-0.5 align-top">
-            {fecha && (
-              <>
-                <span className="block text-[10px] font-bold text-gray-400 leading-none mb-0.5">
-                  {fecha.split("-")[2]}
-                </span>
-                <div className="space-y-0.5">{renderDia(fecha)}</div>
-              </>
-            )}
+      </div>
+      {/* Filas del calendario — flex para repartir altura uniformemente */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {filas.map((fila, fi) => (
+          <div key={fi} className={cn("flex-1 grid grid-cols-7 min-h-0", fi < filas.length - 1 && "border-b border-gray-100")}>
+            {fila.map((fecha, ci) => (
+              <div key={ci} className={cn("p-0.5 overflow-hidden flex flex-col min-h-0",
+                ci < 6 && "border-r border-gray-100")}>
+                {fecha && (
+                  <>
+                    <span className="text-[10px] font-bold text-gray-400 leading-tight flex-shrink-0">
+                      {parseInt(fecha.split("-")[2])}
+                    </span>
+                    <div className="flex-1 overflow-hidden mt-0.5 space-y-px">
+                      {renderDia(fecha)}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -352,7 +388,7 @@ function CalendarioMes({ año, mes, renderDia, renderDiaHeader }: {
   );
 }
 
-function CalendarioTareas({ tareas, desde, hasta }: { tareas: Tarea[]; desde: string; hasta: string }) {
+function CalendarioTareas({ tareas, calDesde, calHasta }: { tareas: Tarea[]; calDesde: string; calHasta: string }) {
   const porFecha = useMemo(() => {
     const m: Record<string, Tarea[]> = {};
     for (const t of tareas) (m[t.fecha] ??= []).push(t);
@@ -360,11 +396,11 @@ function CalendarioTareas({ tareas, desde, hasta }: { tareas: Tarea[]; desde: st
   }, [tareas]);
 
   return (
-    <div className="space-y-4">
-      {getMesesEnRango(desde, hasta).map(({ año, mes }) => (
+    <div>
+      {getMesesEnRango(calDesde, calHasta).map(({ año, mes }) => (
         <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
           renderDia={(fecha) => (porFecha[fecha] ?? []).map((t) => (
-            <div key={t.id} className={cn("text-[9px] leading-tight px-0.5 rounded truncate",
+            <div key={t.id} className={cn("text-[9px] leading-tight truncate",
               t.completada ? "text-green-700 line-through" : "text-gray-700")}>
               {t.completada ? "✓" : "·"} {t.texto}
             </div>
@@ -375,30 +411,24 @@ function CalendarioTareas({ tareas, desde, hasta }: { tareas: Tarea[]; desde: st
   );
 }
 
-function CalendarioMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desde: string; hasta: string }) {
+function CalendarioMedicacion({ meds, calDesde, calHasta }: { meds: Medicacion[]; calDesde: string; calHasta: string }) {
   const hoy = new Date().toISOString().split("T")[0];
   return (
-    <div className="space-y-4">
-      {getMesesEnRango(desde, hasta).map(({ año, mes }) => (
+    <div>
+      {getMesesEnRango(calDesde, calHasta).map(({ año, mes }) => (
         <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
-          renderDiaHeader={
-            <div className="mb-1 flex flex-wrap gap-1">
-              {meds.map((m) => (
-                <span key={m.id} className="text-[9px] bg-purple-100 text-purple-700 px-1 rounded">{m.nombre}</span>
-              ))}
-            </div>
-          }
+          leyenda={meds.map((m) => (
+            <span key={m.id} className="bg-purple-100 text-purple-700 px-1 py-px rounded">{m.nombre}</span>
+          ))}
           renderDia={(fecha) => {
             if (fecha > hoy) return null;
             return meds.filter((m) => m.fechaInicio <= fecha && fecha <= m.fechaFin).map((m) => {
-              const tomasDia = m.horas.filter((h) => m.completadasEn.includes(`${fecha}_${h}`)).length;
+              const tomadas = m.horas.filter((h) => m.completadasEn.includes(`${fecha}_${h}`)).length;
               const total = m.horas.length;
-              const todas = tomasDia === total;
-              const ninguna = tomasDia === 0;
               return (
-                <div key={m.id} className={cn("text-[9px] leading-tight px-0.5 rounded truncate font-medium",
-                  todas ? "text-green-700" : ninguna ? "text-red-600" : "text-amber-600")}>
-                  {todas ? "✓" : ninguna ? "✗" : `${tomasDia}/${total}`} {m.nombre}
+                <div key={m.id} className={cn("text-[9px] leading-tight truncate font-medium",
+                  tomadas === total ? "text-green-700" : tomadas === 0 ? "text-red-600" : "text-amber-600")}>
+                  {tomadas === total ? "✓" : tomadas === 0 ? "✗" : `${tomadas}/${total}`} {m.nombre}
                 </div>
               );
             });
@@ -409,7 +439,7 @@ function CalendarioMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desd
   );
 }
 
-function CalendarioCitas({ citas, desde, hasta }: { citas: Cita[]; desde: string; hasta: string }) {
+function CalendarioCitas({ citas, calDesde, calHasta }: { citas: Cita[]; calDesde: string; calHasta: string }) {
   const hoy = new Date().toISOString().split("T")[0];
   const porFecha = useMemo(() => {
     const m: Record<string, Cita[]> = {};
@@ -418,11 +448,11 @@ function CalendarioCitas({ citas, desde, hasta }: { citas: Cita[]; desde: string
   }, [citas]);
 
   return (
-    <div className="space-y-4">
-      {getMesesEnRango(desde, hasta).map(({ año, mes }) => (
+    <div>
+      {getMesesEnRango(calDesde, calHasta).map(({ año, mes }) => (
         <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
           renderDia={(fecha) => (porFecha[fecha] ?? []).map((c) => (
-            <div key={c.id} className={cn("text-[9px] leading-tight px-0.5 rounded truncate",
+            <div key={c.id} className={cn("text-[9px] leading-tight truncate",
               c.realizada ? "text-green-700" : fecha <= hoy ? "text-red-600" : "text-sky-700")}>
               {c.realizada ? "✓" : "·"} {c.hora} {c.titulo}
             </div>
@@ -444,18 +474,35 @@ export default function HistorialPage() {
   const [sesion]                        = useState(getSesion);
   const [vistaCalendario, setVistaCalendario] = useState(false);
 
+  // Rango libre para vista calendario (permite meses futuros)
+  const [calDesde, setCalDesde] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [calHasta, setCalHasta] = useState(() => {
+    const d = new Date(); d.setMonth(d.getMonth() + 11);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+
   const { desde, hasta } = useMemo(() => getRango(PERIODOS[periodoIdx].meses), [periodoIdx]);
+
+  // Rango efectivo: para calendario usa calDesde/calHasta (incluye futuro)
+  const desdeEfectivo = vistaCalendario ? `${calDesde}-01` : desde;
+  const hastaEfectivo = useMemo(() => {
+    if (!vistaCalendario) return hasta;
+    const [a, m] = calHasta.split("-").map(Number);
+    return new Date(a, m, 0).toISOString().split("T")[0];
+  }, [vistaCalendario, calHasta, hasta]);
 
   useEffect(() => {
     setCargando(true);
 
     if (!sesion) {
-      // Modo local: leer todo sin filtro de fecha y filtrar aquí
-      const t: Tarea[]     = JSON.parse(localStorage.getItem("cf_tareas")       ?? "[]");
-      const c: Cita[]      = JSON.parse(localStorage.getItem("cf_citas")        ?? "[]");
-      const m: Medicacion[] = JSON.parse(localStorage.getItem("cf_medicaciones") ?? "[]");
-      setTareas(t.filter(x => x.fecha >= desde && x.fecha <= hasta));
-      setCitas(c.filter(x => x.fecha >= desde && x.fecha <= hasta));
+      const t: Tarea[]      = JSON.parse(localStorage.getItem("cf_tareas")        ?? "[]");
+      const c: Cita[]       = JSON.parse(localStorage.getItem("cf_citas")         ?? "[]");
+      const m: Medicacion[] = JSON.parse(localStorage.getItem("cf_medicaciones")  ?? "[]");
+      setTareas(t.filter(x => x.fecha >= desdeEfectivo && x.fecha <= hastaEfectivo));
+      setCitas(c.filter(x => x.fecha >= desdeEfectivo && x.fecha <= hastaEfectivo));
       setMeds(m);
       setCargando(false);
     } else {
@@ -463,9 +510,9 @@ export default function HistorialPage() {
         const gid = sesion.grupoId;
         const [{ data: t }, { data: c }, { data: m }] = await Promise.all([
           supabase.from("tareas").select("*").eq("grupo_id", gid)
-            .gte("fecha", desde).lte("fecha", hasta),
+            .gte("fecha", desdeEfectivo).lte("fecha", hastaEfectivo),
           supabase.from("citas").select("*").eq("grupo_id", gid)
-            .gte("fecha", desde).lte("fecha", hasta),
+            .gte("fecha", desdeEfectivo).lte("fecha", hastaEfectivo),
           supabase.from("medicaciones").select("*").eq("grupo_id", gid),
         ]);
         setTareas((t ?? []).map(fromDbTarea));
@@ -474,7 +521,7 @@ export default function HistorialPage() {
         setCargando(false);
       })();
     }
-  }, [periodoIdx, sesion?.grupoId, desde, hasta]);
+  }, [periodoIdx, sesion?.grupoId, desdeEfectivo, hastaEfectivo]);
 
   const perfil = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -493,9 +540,24 @@ export default function HistorialPage() {
 
   return (
     <>
-      {/* CSS para impresión en horizontal cuando es calendario */}
+      {/* CSS impresión calendario: A4 horizontal, un mes por hoja */}
       {vistaCalendario && (
-        <style>{`@media print { @page { size: A4 landscape; margin: 10mm; } }`}</style>
+        <style>{`
+          @media print {
+            @page { size: A4 landscape; margin: 6mm; }
+            .cal-mes-completo {
+              page-break-after: always !important;
+              break-after: page !important;
+              height: 196mm !important;
+              margin-bottom: 0 !important;
+              border-radius: 0 !important;
+            }
+            .cal-mes-completo:last-child {
+              page-break-after: avoid !important;
+              break-after: avoid !important;
+            }
+          }
+        `}</style>
       )}
 
       {/* Título solo para impresión */}
@@ -565,13 +627,35 @@ export default function HistorialPage() {
             </button>
           </div>
 
+          {/* Selectores de mes solo para calendario */}
+          {vistaCalendario && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-gray-500 font-medium flex-shrink-0">Desde:</span>
+              <select
+                value={calDesde}
+                onChange={(e) => setCalDesde(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-beige-200 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+              >
+                {OPCIONES_MES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <span className="text-sm text-gray-500 font-medium flex-shrink-0">Hasta:</span>
+              <select
+                value={calHasta}
+                onChange={(e) => setCalHasta(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-beige-200 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+              >
+                {OPCIONES_MES.filter((o) => o.value >= calDesde).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          )}
+
           {/* Botón imprimir */}
           <button
             onClick={() => window.print()}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-sky-200 text-sky-600 hover:bg-sky-50 transition-colors font-medium text-sm"
           >
             <Printer size={18} />
-            Imprimir / Guardar como PDF {vistaCalendario ? "(calendario A4 horizontal)" : "(lista)"}
+            {vistaCalendario ? "Imprimir calendario (A4 horizontal · 1 mes por hoja)" : "Imprimir / Guardar como PDF"}
           </button>
         </div>
 
@@ -582,9 +666,9 @@ export default function HistorialPage() {
           <div className="print:pt-2">
             {vistaCalendario ? (
               <>
-                {tab === "tareas"     && <CalendarioTareas tareas={tareas} desde={desde} hasta={hasta} />}
-                {tab === "medicacion" && <CalendarioMedicacion meds={meds} desde={desde} hasta={hasta} />}
-                {tab === "citas"      && <CalendarioCitas citas={citas} desde={desde} hasta={hasta} />}
+                {tab === "tareas"     && <CalendarioTareas tareas={tareas} calDesde={calDesde} calHasta={calHasta} />}
+                {tab === "medicacion" && <CalendarioMedicacion meds={meds} calDesde={calDesde} calHasta={calHasta} />}
+                {tab === "citas"      && <CalendarioCitas citas={citas} calDesde={calDesde} calHasta={calHasta} />}
               </>
             ) : (
               <>
