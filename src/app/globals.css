@@ -15,6 +15,7 @@
     background-image: radial-gradient(ellipse at 80% 0%, #f0f7f0 0%, transparent 60%),
                       radial-gradient(ellipse at 20% 100%, #fffbf0 0%, transparent 60%);
     font-family: "Inter", system-ui, -apple-system, sans-serif;
+    overflow-x: hidden; /* permite el hero full-bleed con 100vw */
   }
 
   * {

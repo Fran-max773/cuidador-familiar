@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Check, Plus, Trash2, Pencil, ClipboardList } from "lucide-react";
+import { Check, Plus, Trash2, Pencil } from "lucide-react";
 import { useTareas } from "@/hooks/useTareas";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -30,7 +30,7 @@ export function TareasSection() {
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
-        <ClipboardList size={18} className="text-sage-500" />
+        <span className="text-xl">✅</span>
         <h2 className="text-lg font-semibold text-gray-800">Tareas pendientes</h2>
       </div>
 

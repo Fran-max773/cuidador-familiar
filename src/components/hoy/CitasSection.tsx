@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { CalendarDays, Plus, Trash2, MapPin, Check, Clock } from "lucide-react";
+import { Plus, Trash2, MapPin, Check, Clock } from "lucide-react";
 import { useCitas } from "@/hooks/useCitas";
 import type { Cita } from "@/types";
 import { Card } from "@/components/ui/Card";
@@ -46,7 +46,7 @@ export function CitasSection() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <CalendarDays size={18} className="text-sage-500" />
+          <span className="text-xl">🗓️</span>
           <h2 className="text-lg font-semibold text-gray-800">Próximas citas</h2>
         </div>
         <Button variante="fantasma" tamaño="sm" onClick={() => setModalAbierto(true)}>

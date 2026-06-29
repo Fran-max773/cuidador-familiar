@@ -105,7 +105,7 @@ export function MedicacionSection() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Pill size={18} className="text-sage-500" />
+          <span className="text-xl">💊</span>
           <h2 className="text-lg font-semibold text-gray-800">Medicación de hoy</h2>
         </div>
         <Button variante="fantasma" tamaño="sm" onClick={abrirNuevo}>
