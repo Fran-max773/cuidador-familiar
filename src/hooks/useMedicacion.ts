@@ -138,6 +138,7 @@ export function useMedicacion() {
       setMedicacionesLocal((prev) => prev.filter((m) => m.id !== id));
       return;
     }
+    setMedicacionesRemoto((prev) => prev.filter((m) => m.id !== id));
     await supabase.from("medicaciones").delete()
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
