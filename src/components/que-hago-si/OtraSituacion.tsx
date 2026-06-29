@@ -124,42 +124,48 @@ export function OtraSituacion() {
                 dictarla con el micrófono y la IA te dará orientación práctica.
               </p>
 
-              {/* Textarea con botón micrófono integrado */}
-              <div className="relative">
-                <textarea
-                  value={texto}
-                  onChange={(e) => voz !== "escuchando" && setTexto(e.target.value)}
-                  readOnly={voz === "escuchando"}
-                  placeholder="Ej: Mi madre lleva dos días muy triste y no quiere salir de la cama..."
-                  rows={4}
-                  className={cn(
-                    "w-full px-4 py-3 pr-14 rounded-xl border text-gray-800 focus:outline-none focus:ring-2 focus:ring-sage-300 resize-none text-base leading-relaxed transition-colors",
-                    voz === "escuchando"
-                      ? "border-red-300 bg-red-50/30"
-                      : "border-beige-200"
-                  )}
-                />
+              {/* Textarea */}
+              <textarea
+                value={texto}
+                onChange={(e) => voz !== "escuchando" && setTexto(e.target.value)}
+                readOnly={voz === "escuchando"}
+                placeholder="Ej: Mi madre lleva dos días muy triste y no quiere salir de la cama..."
+                rows={4}
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border text-gray-800 focus:outline-none focus:ring-2 focus:ring-sage-300 resize-none text-base leading-relaxed transition-colors",
+                  voz === "escuchando" ? "border-red-300 bg-red-50/30" : "border-beige-200"
+                )}
+              />
 
-                {/* Botón micro — dentro del textarea, esquina inferior derecha */}
-                {voz !== "no-soportado" && (
+              {/* Botón micrófono */}
+              {voz !== "no-soportado" && (
+                <div className="flex flex-col items-center gap-2">
+                  {voz !== "escuchando" && (
+                    <p className="text-sm text-gray-400 text-center">
+                      Si lo prefieres, puedes hablar pulsando el micrófono
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={voz === "escuchando" ? detenerVoz : iniciarVoz}
                     aria-label={voz === "escuchando" ? "Detener grabación" : "Dictar por voz"}
                     className={cn(
-                      "absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm",
+                      "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-md",
                       voz === "escuchando"
-                        ? "bg-red-500 text-white shadow-red-200 shadow-md"
-                        : "bg-sage-100 text-sage-600 hover:bg-sage-200"
+                        ? "bg-red-500 text-white shadow-red-300 shadow-lg scale-110 animate-pulse"
+                        : "bg-gradient-to-br from-sky-400 to-sky-600 text-white hover:from-sky-500 hover:to-sky-700 hover:scale-105 shadow-sky-200"
                     )}
                   >
                     {voz === "escuchando"
-                      ? <Square size={13} fill="currentColor" />
-                      : <Mic size={16} />
+                      ? <Square size={22} fill="currentColor" />
+                      : <Mic size={26} />
                     }
                   </button>
-                )}
-              </div>
+                  {voz === "escuchando" && (
+                    <p className="text-sm text-red-500 font-medium">Pulsa para detener</p>
+                  )}
+                </div>
+              )}
 
               {/* Texto en tiempo real mientras escucha */}
               {voz === "escuchando" && (
