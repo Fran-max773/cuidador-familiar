@@ -560,16 +560,17 @@ export default function HistorialPage() {
         `}</style>
       )}
 
-      {/* Título solo para impresión */}
-      <div className="hidden print:block mb-4">
-        <h1 className="text-xl font-bold text-gray-800">{tituloPrint}</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {tab === "tareas" ? "Tareas" : tab === "medicacion" ? "Medicación" : "Citas"}
-          {" · "}Período: {diaCorto(desde).split("/").reverse().join("/")} — {diaCorto(hasta).split("/").reverse().join("/")}
-          {vistaCalendario ? " · Vista calendario" : ""}
-        </p>
-        <hr className="mt-2 border-gray-200" />
-      </div>
+      {/* Título solo para impresión — oculto en calendario (cada mes ya lleva cabecera) */}
+      {!vistaCalendario && (
+        <div className="hidden print:block mb-4">
+          <h1 className="text-xl font-bold text-gray-800">{tituloPrint}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {tab === "tareas" ? "Tareas" : tab === "medicacion" ? "Medicación" : "Citas"}
+            {" · "}Período: {diaCorto(desde).split("/").reverse().join("/")} — {diaCorto(hasta).split("/").reverse().join("/")}
+          </p>
+          <hr className="mt-2 border-gray-200" />
+        </div>
+      )}
 
       <div className="space-y-5 print:space-y-4">
         {/* Controles — ocultos al imprimir */}
