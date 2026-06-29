@@ -71,6 +71,7 @@ const fromDbTarea = (r: any): Tarea => ({
 const fromDbCita = (r: any): Cita => ({
   id: r.id, tipo: r.tipo, titulo: r.titulo, fecha: r.fecha,
   hora: r.hora, lugar: r.lugar ?? "", notas: r.notas ?? "",
+  realizada: r.realizada ?? false,
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fromDbMed = (r: any): Medicacion => ({
@@ -230,13 +231,14 @@ function SeccionCitas({ citas }: { citas: Cita[] }) {
   if (!citas.length) return <p className="text-gray-400 text-center py-8">No hay citas en este período.</p>;
 
   const meses = agruparPorMes([...citas].sort((a,b) => b.fecha.localeCompare(a.fecha)));
-  const pasadas  = citas.filter(c => c.fecha < hoy).length;
-  const futuras  = citas.filter(c => c.fecha >= hoy).length;
+  const realizadas = citas.filter(c => c.realizada).length;
+  const proximas   = citas.filter(c => c.fecha > hoy && !c.realizada).length;
+  const pendientes = citas.filter(c => c.fecha <= hoy && !c.realizada).length;
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-gray-500">
-        {futuras} próximas · {pasadas} realizadas · {citas.length} total
+        {proximas} próximas · {realizadas} realizadas · {pendientes > 0 ? `${pendientes} sin confirmar · ` : ""}{citas.length} total
       </p>
       {meses.map(([mes, items]) => (
         <div key={mes} className="print-month">
@@ -245,21 +247,31 @@ function SeccionCitas({ citas }: { citas: Cita[] }) {
           </p>
           <div className="space-y-2">
             {items.map((c) => {
-              const pasada = c.fecha < hoy;
+              const esPasadaOHoy = c.fecha <= hoy;
+              const esFutura = c.fecha > hoy;
               return (
-                <div key={c.id} className={cn("flex items-start gap-3 text-sm", pasada && "opacity-70")}>
+                <div key={c.id} className={cn("flex items-start gap-3 text-sm", c.realizada && "opacity-70")}>
                   <span className="w-12 text-gray-400 text-xs flex-shrink-0 pt-1">{diaCorto(c.fecha)}</span>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", TIPOS_COLOR[c.tipo])}>
                         {TIPOS_LABEL[c.tipo]}
                       </span>
-                      <span className={cn(
-                        "text-xs px-2 py-0.5 rounded-full font-medium",
-                        pasada ? "bg-gray-100 text-gray-500" : "bg-sky-100 text-sky-700"
-                      )}>
-                        {pasada ? "Realizada" : "Pendiente"}
-                      </span>
+                      {c.realizada && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">
+                          ✓ Realizada
+                        </span>
+                      )}
+                      {!c.realizada && esPasadaOHoy && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">
+                          Pendiente
+                        </span>
+                      )}
+                      {!c.realizada && esFutura && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-sky-100 text-sky-700">
+                          Próxima
+                        </span>
+                      )}
                     </div>
                     <p className="font-medium text-gray-800">{c.titulo}</p>
                     <p className="text-gray-500 text-xs">

@@ -67,7 +67,7 @@ export function CitasSection() {
         <div className="space-y-2">
           {citas.slice(0, 8).map((cita) => {
             const dias = diasHasta(cita.fecha);
-            const pasada = cita.fecha < hoy;
+            const pasada = cita.fecha <= hoy;
             return (
               <Card key={cita.id} className={`flex items-start gap-4 ${pasada && !cita.realizada ? "border-amber-200 bg-amber-50/40" : ""} ${cita.realizada ? "border-green-200 bg-green-50/40" : ""}`}>
                 <div className="flex-shrink-0 text-center w-12">
