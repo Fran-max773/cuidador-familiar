@@ -50,12 +50,17 @@ export function TareasSection() {
 
       {tareas.length === 0 ? (
         <Card>
-          <p className="text-gray-500 text-center font-medium py-1">
-            Anota lo que hay que hacer hoy.
-          </p>
-          <p className="text-gray-400 text-sm text-center mt-1">
-            Ej: Llamar al médico · Comprar pañales · Lavar ropa de cama
-          </p>
+          <p className="text-gray-500 font-medium mb-3">Ejemplos de tareas:</p>
+          <ul className="space-y-1.5 text-sm text-gray-400">
+            <li>💊 Recoger receta en el médico</li>
+            <li>🛒 Comprar pañales y toallitas</li>
+            <li>📞 Llamar a la seguridad social</li>
+            <li>🧺 Lavar ropa de cama</li>
+            <li>🏥 Pedir cita con el neurólogo</li>
+            <li>💈 Llevar a la peluquería</li>
+            <li>📋 Renovar tarjeta sanitaria</li>
+          </ul>
+          <p className="text-gray-300 text-xs mt-3 text-center">Pulsa "+ Añadir" para crear tu primera tarea</p>
         </Card>
       ) : (
         <div className="space-y-2">
