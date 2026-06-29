@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { Printer, Pill, ClipboardList, CalendarDays, Check, X, Minus } from "lucide-react";
+import { Printer, Pill, ClipboardList, CalendarDays, Check, X, Minus, List, LayoutGrid } from "lucide-react";
 import { getSesion } from "@/hooks/useGrupo";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -289,15 +289,160 @@ function SeccionCitas({ citas }: { citas: Cita[] }) {
   );
 }
 
+// ── Calendario mensual ────────────────────────────────────────────────────────
+const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const MESES_NOMBRE = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                      "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function getMesesEnRango(desde: string, hasta: string): { año: number; mes: number }[] {
+  const result: { año: number; mes: number }[] = [];
+  const [dA, dM] = desde.split("-").map(Number);
+  const [hA, hM] = hasta.split("-").map(Number);
+  let a = dA, m = dM;
+  while (a < hA || (a === hA && m <= hM)) {
+    result.push({ año: a, mes: m - 1 }); // mes 0-indexed para Date
+    m++; if (m > 12) { m = 1; a++; }
+  }
+  return result;
+}
+
+function CalendarioMes({ año, mes, renderDia, renderDiaHeader }: {
+  año: number; mes: number;
+  renderDia: (fecha: string) => React.ReactNode;
+  renderDiaHeader?: React.ReactNode;
+}) {
+  const primerDia = new Date(año, mes, 1);
+  const diasEnMes = new Date(año, mes + 1, 0).getDate();
+  let offset = primerDia.getDay() - 1; // lunes=0
+  if (offset < 0) offset = 6;
+
+  const celdas: (string | null)[] = [];
+  for (let i = 0; i < offset; i++) celdas.push(null);
+  for (let d = 1; d <= diasEnMes; d++) {
+    celdas.push(`${año}-${String(mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+  }
+  while (celdas.length % 7 !== 0) celdas.push(null);
+
+  return (
+    <div className="print-month mb-6 break-inside-avoid-page">
+      <h3 className="text-base font-bold text-gray-700 mb-2">
+        {MESES_NOMBRE[mes]} {año}
+      </h3>
+      {renderDiaHeader}
+      <div className="grid grid-cols-7 border-l border-t border-gray-200 text-xs">
+        {DIAS_SEMANA.map((d) => (
+          <div key={d} className="border-r border-b border-gray-200 bg-gray-50 text-center py-1 font-semibold text-gray-500 text-[10px]">
+            {d}
+          </div>
+        ))}
+        {celdas.map((fecha, i) => (
+          <div key={i} className="border-r border-b border-gray-200 min-h-[56px] p-0.5 align-top">
+            {fecha && (
+              <>
+                <span className="block text-[10px] font-bold text-gray-400 leading-none mb-0.5">
+                  {fecha.split("-")[2]}
+                </span>
+                <div className="space-y-0.5">{renderDia(fecha)}</div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CalendarioTareas({ tareas, desde, hasta }: { tareas: Tarea[]; desde: string; hasta: string }) {
+  const porFecha = useMemo(() => {
+    const m: Record<string, Tarea[]> = {};
+    for (const t of tareas) (m[t.fecha] ??= []).push(t);
+    return m;
+  }, [tareas]);
+
+  return (
+    <div className="space-y-4">
+      {getMesesEnRango(desde, hasta).map(({ año, mes }) => (
+        <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
+          renderDia={(fecha) => (porFecha[fecha] ?? []).map((t) => (
+            <div key={t.id} className={cn("text-[9px] leading-tight px-0.5 rounded truncate",
+              t.completada ? "text-green-700 line-through" : "text-gray-700")}>
+              {t.completada ? "✓" : "·"} {t.texto}
+            </div>
+          ))}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CalendarioMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desde: string; hasta: string }) {
+  const hoy = new Date().toISOString().split("T")[0];
+  return (
+    <div className="space-y-4">
+      {getMesesEnRango(desde, hasta).map(({ año, mes }) => (
+        <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
+          renderDiaHeader={
+            <div className="mb-1 flex flex-wrap gap-1">
+              {meds.map((m) => (
+                <span key={m.id} className="text-[9px] bg-purple-100 text-purple-700 px-1 rounded">{m.nombre}</span>
+              ))}
+            </div>
+          }
+          renderDia={(fecha) => {
+            if (fecha > hoy) return null;
+            return meds.filter((m) => m.fechaInicio <= fecha && fecha <= m.fechaFin).map((m) => {
+              const tomasDia = m.horas.filter((h) => m.completadasEn.includes(`${fecha}_${h}`)).length;
+              const total = m.horas.length;
+              const todas = tomasDia === total;
+              const ninguna = tomasDia === 0;
+              return (
+                <div key={m.id} className={cn("text-[9px] leading-tight px-0.5 rounded truncate font-medium",
+                  todas ? "text-green-700" : ninguna ? "text-red-600" : "text-amber-600")}>
+                  {todas ? "✓" : ninguna ? "✗" : `${tomasDia}/${total}`} {m.nombre}
+                </div>
+              );
+            });
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CalendarioCitas({ citas, desde, hasta }: { citas: Cita[]; desde: string; hasta: string }) {
+  const hoy = new Date().toISOString().split("T")[0];
+  const porFecha = useMemo(() => {
+    const m: Record<string, Cita[]> = {};
+    for (const c of citas) (m[c.fecha] ??= []).push(c);
+    return m;
+  }, [citas]);
+
+  return (
+    <div className="space-y-4">
+      {getMesesEnRango(desde, hasta).map(({ año, mes }) => (
+        <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
+          renderDia={(fecha) => (porFecha[fecha] ?? []).map((c) => (
+            <div key={c.id} className={cn("text-[9px] leading-tight px-0.5 rounded truncate",
+              c.realizada ? "text-green-700" : fecha <= hoy ? "text-red-600" : "text-sky-700")}>
+              {c.realizada ? "✓" : "·"} {c.hora} {c.titulo}
+            </div>
+          ))}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function HistorialPage() {
-  const [tab, setTab]           = useState<Tab>("tareas");
-  const [periodoIdx, setPeriodo] = useState(1); // 3 meses por defecto
-  const [tareas, setTareas]     = useState<Tarea[]>([]);
-  const [citas, setCitas]       = useState<Cita[]>([]);
-  const [meds, setMeds]         = useState<Medicacion[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [sesion]                = useState(getSesion);
+  const [tab, setTab]                   = useState<Tab>("tareas");
+  const [periodoIdx, setPeriodo]         = useState(1);
+  const [tareas, setTareas]             = useState<Tarea[]>([]);
+  const [citas, setCitas]               = useState<Cita[]>([]);
+  const [meds, setMeds]                 = useState<Medicacion[]>([]);
+  const [cargando, setCargando]         = useState(true);
+  const [sesion]                        = useState(getSesion);
+  const [vistaCalendario, setVistaCalendario] = useState(false);
 
   const { desde, hasta } = useMemo(() => getRango(PERIODOS[periodoIdx].meses), [periodoIdx]);
 
@@ -348,14 +493,20 @@ export default function HistorialPage() {
 
   return (
     <>
+      {/* CSS para impresión en horizontal cuando es calendario */}
+      {vistaCalendario && (
+        <style>{`@media print { @page { size: A4 landscape; margin: 10mm; } }`}</style>
+      )}
+
       {/* Título solo para impresión */}
-      <div className="hidden print:block mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">{tituloPrint}</h1>
+      <div className="hidden print:block mb-4">
+        <h1 className="text-xl font-bold text-gray-800">{tituloPrint}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Período: {diaCorto(desde).split("/").reverse().join("/")} — {diaCorto(hasta).split("/").reverse().join("/")}
-          {" · "}{tab === "tareas" ? "Tareas" : tab === "medicacion" ? "Medicación" : "Citas"}
+          {tab === "tareas" ? "Tareas" : tab === "medicacion" ? "Medicación" : "Citas"}
+          {" · "}Período: {diaCorto(desde).split("/").reverse().join("/")} — {diaCorto(hasta).split("/").reverse().join("/")}
+          {vistaCalendario ? " · Vista calendario" : ""}
         </p>
-        <hr className="mt-3 border-gray-200" />
+        <hr className="mt-2 border-gray-200" />
       </div>
 
       <div className="space-y-5 print:space-y-4">
@@ -396,13 +547,31 @@ export default function HistorialPage() {
             ))}
           </div>
 
+          {/* Vista lista / calendario */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setVistaCalendario(false)}
+              className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                !vistaCalendario ? "bg-gray-700 text-white border-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}
+            >
+              <List size={15} /> Lista
+            </button>
+            <button
+              onClick={() => setVistaCalendario(true)}
+              className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border transition-all",
+                vistaCalendario ? "bg-gray-700 text-white border-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}
+            >
+              <LayoutGrid size={15} /> Calendario
+            </button>
+          </div>
+
           {/* Botón imprimir */}
           <button
             onClick={() => window.print()}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-sky-200 text-sky-600 hover:bg-sky-50 transition-colors font-medium text-sm"
           >
             <Printer size={18} />
-            Imprimir / Guardar como PDF
+            Imprimir / Guardar como PDF {vistaCalendario ? "(calendario A4 horizontal)" : "(lista)"}
           </button>
         </div>
 
@@ -411,9 +580,19 @@ export default function HistorialPage() {
           <p className="text-gray-400 text-center py-12">Cargando...</p>
         ) : (
           <div className="print:pt-2">
-            {tab === "tareas"     && <SeccionTareas tareas={tareas} />}
-            {tab === "medicacion" && <SeccionMedicacion meds={meds} desde={desde} hasta={hasta} />}
-            {tab === "citas"      && <SeccionCitas citas={citas} />}
+            {vistaCalendario ? (
+              <>
+                {tab === "tareas"     && <CalendarioTareas tareas={tareas} desde={desde} hasta={hasta} />}
+                {tab === "medicacion" && <CalendarioMedicacion meds={meds} desde={desde} hasta={hasta} />}
+                {tab === "citas"      && <CalendarioCitas citas={citas} desde={desde} hasta={hasta} />}
+              </>
+            ) : (
+              <>
+                {tab === "tareas"     && <SeccionTareas tareas={tareas} />}
+                {tab === "medicacion" && <SeccionMedicacion meds={meds} desde={desde} hasta={hasta} />}
+                {tab === "citas"      && <SeccionCitas citas={citas} />}
+              </>
+            )}
           </div>
         )}
       </div>
