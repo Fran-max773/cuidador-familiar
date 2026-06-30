@@ -18,33 +18,46 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.startsWith("sk-...")) {
     return NextResponse.json(
-      { error: "Falta configurar OPENAI_API_KEY en .env.local" },
+      { error: "La función de IA no está configurada. Contacta con el administrador." },
       { status: 500 }
     );
   }
 
-  const { mensajes } = await req.json();
+  let mensajes: { rol: string; texto: string }[];
+  try {
+    const body = await req.json();
+    mensajes = body.mensajes;
+  } catch {
+    return NextResponse.json({ error: "Petición inválida" }, { status: 400 });
+  }
+
   if (!Array.isArray(mensajes) || mensajes.length === 0) {
     return NextResponse.json({ error: "Sin mensajes" }, { status: 400 });
   }
 
-  const openai = new OpenAI({ apiKey });
+  try {
+    const openai = new OpenAI({ apiKey });
 
-  // Enviamos los últimos 10 mensajes para mantener contexto sin exceder tokens
-  const historial = mensajes.slice(-10).map(
-    (m: { rol: string; texto: string }) => ({
+    const historial = mensajes.slice(-10).map((m) => ({
       role: m.rol === "usuario" ? ("user" as const) : ("assistant" as const),
       content: m.texto,
-    })
-  );
+    }));
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...historial],
-    max_tokens: 280,
-    temperature: 0.6,
-  });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...historial],
+      max_tokens: 280,
+      temperature: 0.6,
+    });
 
-  const respuesta = completion.choices[0]?.message?.content ?? "";
-  return NextResponse.json({ respuesta });
+    const respuesta = completion.choices[0]?.message?.content ?? "";
+    return NextResponse.json({ respuesta });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error desconocido";
+    console.error("[chat] Error OpenAI:", msg);
+    return NextResponse.json(
+      { error: "No se pudo conectar con la IA. Inténtalo de nuevo en unos segundos." },
+      { status: 500 }
+    );
+  }
 }

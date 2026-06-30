@@ -17,28 +17,43 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.startsWith("sk-...")) {
     return NextResponse.json(
-      { error: "Falta configurar la clave OPENAI_API_KEY en .env.local" },
+      { error: "La función de IA no está configurada. Contacta con el administrador." },
       { status: 500 }
     );
   }
 
-  const { situacion } = await req.json();
+  let situacion: string;
+  try {
+    const body = await req.json();
+    situacion = body.situacion;
+  } catch {
+    return NextResponse.json({ error: "Petición inválida" }, { status: 400 });
+  }
+
   if (!situacion?.trim()) {
     return NextResponse.json({ error: "Texto vacío" }, { status: 400 });
   }
 
-  const openai = new OpenAI({ apiKey });
+  try {
+    const openai = new OpenAI({ apiKey });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user",   content: situacion.trim() },
+      ],
+      max_tokens: 350,
+      temperature: 0.5,
+    });
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user",   content: situacion.trim() },
-    ],
-    max_tokens: 350,
-    temperature: 0.5,
-  });
-
-  const respuesta = completion.choices[0]?.message?.content ?? "";
-  return NextResponse.json({ respuesta });
+    const respuesta = completion.choices[0]?.message?.content ?? "";
+    return NextResponse.json({ respuesta });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Error desconocido";
+    console.error("[consulta-situacion] Error OpenAI:", msg);
+    return NextResponse.json(
+      { error: "No se pudo conectar con la IA. Inténtalo de nuevo en unos segundos." },
+      { status: 500 }
+    );
+  }
 }
