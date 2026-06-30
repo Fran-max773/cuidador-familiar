@@ -6,7 +6,7 @@ import type { Cita } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { formatearFechaCorta, diasHasta } from "@/lib/utils";
+import { cn, formatearFechaCorta, diasHasta } from "@/lib/utils";
 
 const TIPOS: { valor: Cita["tipo"]; etiqueta: string }[] = [
   { valor: "medico",   etiqueta: "Médico" },
@@ -90,47 +90,78 @@ export function CitasSection() {
             const dias = diasHasta(cita.fecha);
             const pasada = cita.fecha <= hoy;
             return (
-              <Card key={cita.id} className={`flex items-start gap-4 ${pasada && !cita.realizada ? "border-amber-200 bg-amber-50/40" : ""} ${cita.realizada ? "border-green-200 bg-green-50/40" : ""}`}>
-                <div className="flex-shrink-0 text-center w-12">
-                  <p className={`text-2xl font-bold leading-none ${cita.realizada ? "text-green-600" : pasada ? "text-amber-500" : "text-sage-600"}`}>
+              <Card
+                key={cita.id}
+                className={cn(
+                  "flex items-center gap-3",
+                  pasada && !cita.realizada && "border-amber-200 bg-amber-50/40",
+                  cita.realizada && "opacity-60"
+                )}
+              >
+                {/* Círculo check — igual que en Medicación */}
+                <button
+                  onClick={() => pasada && marcarRealizada(cita.id, !cita.realizada)}
+                  className={cn(
+                    "w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all",
+                    cita.realizada
+                      ? "bg-sage-500 border-sage-500 text-white"
+                      : pasada
+                        ? "border-amber-400 hover:border-amber-500"
+                        : "border-gray-200 cursor-default"
+                  )}
+                  aria-label={cita.realizada ? "Desmarcar como realizada" : "Marcar como realizada"}
+                >
+                  {cita.realizada && <Check size={16} strokeWidth={3} />}
+                </button>
+
+                {/* Fecha */}
+                <div className="flex-shrink-0 text-center w-10">
+                  <p className={cn(
+                    "text-xl font-bold leading-none",
+                    cita.realizada ? "text-gray-400" : pasada ? "text-amber-500" : "text-sage-600"
+                  )}>
                     {cita.fecha.split("-")[2]}
                   </p>
-                  <p className="text-xs text-gray-400 uppercase">
+                  <p className="text-[10px] text-gray-400 uppercase">
                     {formatearFechaCorta(cita.fecha).split(" ")[1]}
                   </p>
                 </div>
+
+                {/* Contenido */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${COLORES_TIPO[cita.tipo]}`}>
+                  <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", COLORES_TIPO[cita.tipo])}>
                       {TIPOS.find((t) => t.valor === cita.tipo)?.etiqueta}
                     </span>
-                    {cita.realizada && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">✓ Realizada</span>}
-                    {!cita.realizada && dias === 0 && <span className="text-xs text-sage-600 font-medium flex items-center gap-1"><Clock size={10}/>Hoy</span>}
-                    {!cita.realizada && dias === 1 && <span className="text-xs text-amber-600 font-medium">Mañana</span>}
-                    {!cita.realizada && dias > 1 && <span className="text-xs text-gray-400">En {dias} días</span>}
-                    {!cita.realizada && pasada && <span className="text-xs text-amber-600 font-medium">Pendiente de confirmar</span>}
+                    {!cita.realizada && dias === 0 && (
+                      <span className="text-xs text-sage-600 font-medium flex items-center gap-1">
+                        <Clock size={10} />Hoy
+                      </span>
+                    )}
+                    {!cita.realizada && dias === 1 && (
+                      <span className="text-xs text-amber-600 font-medium">Mañana</span>
+                    )}
+                    {!cita.realizada && dias > 1 && (
+                      <span className="text-xs text-gray-400">En {dias} días</span>
+                    )}
+                    {!cita.realizada && pasada && (
+                      <span className="text-xs text-amber-600 font-medium">Pendiente</span>
+                    )}
                   </div>
-                  <p className={`font-medium ${cita.realizada ? "text-green-800" : "text-gray-800"}`}>{cita.titulo}</p>
-                  <p className="text-sm text-gray-500">{cita.hora}{cita.lugar ? ` · ` : ""}{cita.lugar && (
-                    <span className="inline-flex items-center gap-0.5">
-                      <MapPin size={12} />{cita.lugar}
-                    </span>
-                  )}</p>
-                  {/* Botón de check — solo para citas pasadas */}
-                  {pasada && (
-                    <button
-                      onClick={() => marcarRealizada(cita.id, !cita.realizada)}
-                      className={`mt-2 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors ${
-                        cita.realizada
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-amber-500 text-white hover:bg-amber-600"
-                      }`}
-                    >
-                      <Check size={12} strokeWidth={3} />
-                      {cita.realizada ? "✓ Realizada — pulsa para desmarcar" : "Marcar como realizada"}
-                    </button>
-                  )}
+                  <p className={cn("font-medium text-gray-800", cita.realizada && "line-through text-gray-400")}>
+                    {cita.titulo}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {cita.hora}
+                    {cita.lugar && (
+                      <span className="inline-flex items-center gap-0.5 ml-1">
+                        <MapPin size={11} />{cita.lugar}
+                      </span>
+                    )}
+                  </p>
                 </div>
+
+                {/* Eliminar */}
                 <button
                   onClick={() => eliminar(cita.id)}
                   className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
