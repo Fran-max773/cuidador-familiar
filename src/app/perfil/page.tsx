@@ -16,6 +16,47 @@ const PERFIL_VACIO: PerfilFamiliar = {
   contactosEmergencia: [],
 };
 
+// ── Fuera del componente para que React no lo destruya en cada render ──────────
+function Campo({
+  label,
+  field,
+  placeholder,
+  multiline = false,
+  perfil,
+  setPerfil,
+}: {
+  label: string;
+  field: Exclude<keyof PerfilFamiliar, "contactosEmergencia">;
+  placeholder?: string;
+  multiline?: boolean;
+  perfil: PerfilFamiliar;
+  setPerfil: React.Dispatch<React.SetStateAction<PerfilFamiliar>>;
+}) {
+  const cls = "w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300 text-gray-800";
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      {multiline ? (
+        <textarea
+          value={perfil[field]}
+          onChange={(e) => setPerfil((p) => ({ ...p, [field]: e.target.value }))}
+          placeholder={placeholder}
+          rows={3}
+          className={`${cls} resize-none`}
+        />
+      ) : (
+        <input
+          type="text"
+          value={perfil[field]}
+          onChange={(e) => setPerfil((p) => ({ ...p, [field]: e.target.value }))}
+          placeholder={placeholder}
+          className={cls}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function PerfilPage() {
   const [perfil, setPerfil] = useState<PerfilFamiliar>(PERFIL_VACIO);
   const [guardado, setGuardado] = useState(false);
@@ -25,7 +66,6 @@ export default function PerfilPage() {
     if (saved) {
       try {
         const parsed: PerfilFamiliar = JSON.parse(saved);
-        // Migrar teléfono legacy a contactosEmergencia
         if (parsed.telefonoEmergencia && !parsed.contactosEmergencia?.length) {
           parsed.contactosEmergencia = [{
             id: crypto.randomUUID(),
@@ -44,38 +84,7 @@ export default function PerfilPage() {
     setTimeout(() => setGuardado(false), 2500);
   };
 
-  const Campo = ({
-    label,
-    field,
-    placeholder,
-    multiline = false,
-  }: {
-    label: string;
-    field: Exclude<keyof PerfilFamiliar, "contactosEmergencia">;
-    placeholder?: string;
-    multiline?: boolean;
-  }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      {multiline ? (
-        <textarea
-          value={perfil[field]}
-          onChange={(e) => setPerfil((p) => ({ ...p, [field]: e.target.value }))}
-          placeholder={placeholder}
-          rows={3}
-          className="w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300 text-gray-800 resize-none"
-        />
-      ) : (
-        <input
-          type="text"
-          value={perfil[field]}
-          onChange={(e) => setPerfil((p) => ({ ...p, [field]: e.target.value }))}
-          placeholder={placeholder}
-          className="w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300 text-gray-800"
-        />
-      )}
-    </div>
-  );
+  const campoProps = { perfil, setPerfil };
 
   return (
     <div className="space-y-6">
@@ -89,9 +98,9 @@ export default function PerfilPage() {
           <h2 className="font-semibold text-gray-800 text-lg">Datos personales</h2>
         </div>
         <div className="space-y-4">
-          <Campo label="Nombre" field="nombre" placeholder="Nombre completo" />
-          <Campo label="Edad" field="edad" placeholder="Ej: 78 años" />
-          <Campo label="Diagnóstico" field="diagnostico" placeholder="Ej: Deterioro cognitivo leve" multiline />
+          <Campo {...campoProps} label="Nombre" field="nombre" placeholder="Nombre completo" />
+          <Campo {...campoProps} label="Edad" field="edad" placeholder="Ej: 78 años" />
+          <Campo {...campoProps} label="Diagnóstico" field="diagnostico" placeholder="Ej: Deterioro cognitivo leve" multiline />
         </div>
       </Card>
 
@@ -101,6 +110,7 @@ export default function PerfilPage() {
           <h2 className="font-semibold text-gray-800 text-lg">Medicación habitual</h2>
         </div>
         <Campo
+          {...campoProps}
           label="Medicamentos"
           field="medicacion"
           placeholder="Ej: Donepezilo 5 mg (noche), Ácido fólico (mañana)…"
@@ -113,7 +123,7 @@ export default function PerfilPage() {
           <Stethoscope size={18} className="text-sage-500" />
           <h2 className="font-semibold text-gray-800 text-lg">Médico de referencia</h2>
         </div>
-        <Campo label="Nombre del médico" field="medico" placeholder="Ej: Dr. Martínez (neurología)" />
+        <Campo {...campoProps} label="Nombre del médico" field="medico" placeholder="Ej: Dr. Martínez (neurología)" />
       </Card>
 
       <Card>
@@ -121,7 +131,7 @@ export default function PerfilPage() {
           <AlertTriangle size={18} className="text-amber-500" />
           <h2 className="font-semibold text-gray-800 text-lg">Alergias</h2>
         </div>
-        <Campo label="Alergias conocidas" field="alergias" placeholder="Ej: Penicilina, ibuprofeno…" multiline />
+        <Campo {...campoProps} label="Alergias conocidas" field="alergias" placeholder="Ej: Penicilina, ibuprofeno…" multiline />
       </Card>
 
       <Card className="border-red-100 bg-red-50">
