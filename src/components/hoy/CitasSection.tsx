@@ -42,6 +42,8 @@ export function CitasSection() {
     setModalAbierto(false);
   };
 
+  const citasHoy = citas.filter((c) => c.fecha === hoy && !c.realizada);
+
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
@@ -53,6 +55,25 @@ export function CitasSection() {
           <Plus size={16} /> Añadir
         </Button>
       </div>
+
+      {citasHoy.length > 0 && (
+        <div className="mb-3 bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0">🗓️</span>
+          <div>
+            <p className="font-bold text-amber-800 text-sm uppercase tracking-wide mb-1">
+              ¡Cita hoy!
+            </p>
+            {citasHoy.map((c) => (
+              <div key={c.id}>
+                <p className="font-semibold text-gray-800 text-base">{c.titulo}</p>
+                <p className="text-sm text-gray-600">
+                  {c.hora}{c.lugar ? ` · ${c.lugar}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {citas.length === 0 ? (
         <Card>

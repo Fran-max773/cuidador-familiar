@@ -540,31 +540,33 @@ export default function HistorialPage() {
 
   return (
     <>
-      {/* CSS impresión calendario: A4 horizontal, un mes por hoja */}
-      {vistaCalendario && (
-        <style>{`
-          @media print {
-            @page { size: A4 landscape; margin: 6mm; }
-            /* Anular el padding del main definido en globals.css para dar toda la página al calendario */
-            main { padding: 0 !important; }
-            .cal-mes-completo {
-              page-break-after: always !important;
-              break-after: page !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-              height: 194mm !important;
-              max-height: 194mm !important;
-              overflow: hidden !important;
-              margin: 0 !important;
-              border-radius: 0 !important;
-            }
-            .cal-mes-completo:last-child {
-              page-break-after: avoid !important;
-              break-after: avoid !important;
-            }
+      {/* CSS impresión: siempre A4 horizontal para máxima legibilidad */}
+      <style>{`
+        @media print {
+          @page { size: A4 landscape; margin: ${vistaCalendario ? "6mm" : "12mm"}; }
+          main { padding: 0 !important; }
+          ${vistaCalendario ? `
+          .cal-mes-completo {
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            height: 194mm !important;
+            max-height: 194mm !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
           }
-        `}</style>
-      )}
+          .cal-mes-completo:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          ` : `
+          .print-section { page-break-inside: avoid; break-inside: avoid; }
+          .print-month { page-break-inside: avoid; break-inside: avoid; }
+          `}
+        }
+      `}</style>
 
       {/* Título solo para impresión — oculto en calendario (cada mes ya lleva cabecera) */}
       {!vistaCalendario && (

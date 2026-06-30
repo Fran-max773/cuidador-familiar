@@ -113,5 +113,22 @@ export function useTareas() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { tareas, agregar, toggleCompletar, editar, eliminar };
+  const togglePrioridad = async (id: string) => {
+    if (!sesion) {
+      setTareasLocal((prev) =>
+        prev.map((t) => t.id === id
+          ? { ...t, prioridad: t.prioridad === "alta" ? "normal" : "alta" }
+          : t)
+      );
+      return;
+    }
+    const tarea = tareasRemoto.find((t) => t.id === id);
+    if (!tarea) return;
+    const nueva: Tarea["prioridad"] = tarea.prioridad === "alta" ? "normal" : "alta";
+    setTareasRemoto((p) => p.map((t) => t.id === id ? { ...t, prioridad: nueva } : t));
+    await supabase.from("tareas").update({ prioridad: nueva })
+      .eq("id", id).eq("grupo_id", sesion.grupoId);
+  };
+
+  return { tareas, agregar, toggleCompletar, editar, eliminar, togglePrioridad };
 }

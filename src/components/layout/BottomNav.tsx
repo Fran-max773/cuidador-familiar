@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -8,7 +9,6 @@ const items = [
     href: "/",
     label: "Hoy",
     emoji: "🏠",
-    emojiActive: "🏡",
     activeText: "text-sage-600",
     inactiveText: "text-gray-400",
     activeBg: "bg-sage-100",
@@ -17,7 +17,6 @@ const items = [
     href: "/que-hago-si",
     label: "Qué hago",
     emoji: "💡",
-    emojiActive: "💡",
     activeText: "text-amber-600",
     inactiveText: "text-gray-400",
     activeBg: "bg-amber-50",
@@ -25,8 +24,7 @@ const items = [
   {
     href: "/bienestar",
     label: "Bienestar",
-    emoji: "🌿",
-    emojiActive: "🌿",
+    emoji: "❤️",
     activeText: "text-rose-500",
     inactiveText: "text-gray-400",
     activeBg: "bg-rose-50",
@@ -35,7 +33,6 @@ const items = [
     href: "/grupo",
     label: "Familia",
     emoji: "👨‍👩‍👧",
-    emojiActive: "👨‍👩‍👧",
     activeText: "text-sky-600",
     inactiveText: "text-gray-400",
     activeBg: "bg-sky-50",
@@ -44,30 +41,31 @@ const items = [
     href: "/perfil",
     label: "Perfil",
     emoji: "👤",
-    emojiActive: "👤",
     activeText: "text-violet-600",
     inactiveText: "text-gray-400",
     activeBg: "bg-violet-50",
-  },
-  {
-    href: "/emergencias",
-    label: "SOS",
-    emoji: "🆘",
-    emojiActive: "🆘",
-    activeText: "text-red-600",
-    inactiveText: "text-red-400",
-    activeBg: "bg-red-50",
   },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [perfilIncompleto, setPerfilIncompleto] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("cf_perfil");
+      if (!saved) { setPerfilIncompleto(true); return; }
+      const p = JSON.parse(saved);
+      setPerfilIncompleto(!p.nombre?.trim());
+    } catch { setPerfilIncompleto(false); }
+  }, []);
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-beige-200 safe-area-pb safe-area-pl safe-area-pr">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-beige-200 safe-area-pb safe-area-pl safe-area-pr print:hidden">
       <div className="max-w-2xl mx-auto flex">
         {items.map(({ href, label, emoji, activeText, inactiveText, activeBg }) => {
           const activo = pathname === href;
+          const esPerfil = href === "/perfil";
           return (
             <Link
               key={href}
@@ -78,10 +76,13 @@ export function BottomNav() {
               )}
             >
               <span className={cn(
-                "w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-colors",
+                "relative w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-colors",
                 activo ? activeBg : "bg-transparent"
               )}>
                 {emoji}
+                {esPerfil && perfilIncompleto && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-amber-400 rounded-full border-2 border-white" />
+                )}
               </span>
               <span className={cn("text-[10px]", activo ? "font-semibold" : "font-normal")}>
                 {label}
