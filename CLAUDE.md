@@ -25,7 +25,7 @@ Desplegada en **https://cuidador-familiar.vercel.app**
 src/
 ├── app/
 │   ├── page.tsx                  # Página "Hoy" (raíz)
-│   ├── historial/page.tsx        # Historial con tabs + ?tab= param
+│   ├── historial/page.tsx        # Historial con tabs; acepta ?tab=medicacion|tareas|citas
 │   ├── perfil/page.tsx           # Perfil del familiar (localStorage)
 │   ├── asistente/page.tsx        # Chat IA
 │   ├── que-hago-si/page.tsx      # Consulta por situación + voz
@@ -40,15 +40,28 @@ src/
 │   │   ├── Header.tsx            # Cabecera con botón ← atrás
 │   │   ├── BottomNav.tsx         # Nav inferior 5 pestañas + badge perfil
 │   │   └── SosButton.tsx         # Botón flotante rojo SOS
-│   └── hoy/
-│       ├── MedicacionSection.tsx
-│       ├── TareasSection.tsx
-│       └── CitasSection.tsx
+│   ├── hoy/
+│   │   ├── MedicacionSection.tsx
+│   │   ├── TareasSection.tsx
+│   │   ├── CitasSection.tsx
+│   │   └── MensajeDiario.tsx
+│   ├── asistente/
+│   │   └── ChatInterface.tsx
+│   ├── bienestar/
+│   │   ├── CheckinDiario.tsx
+│   │   └── GraficoSemanal.tsx
+│   ├── que-hago-si/
+│   │   └── OtraSituacion.tsx
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Card.tsx
+│       └── Modal.tsx
 ├── hooks/
 │   ├── useMedicacion.ts          # Supabase + localStorage, 60 días
 │   ├── useTareas.ts              # Supabase + localStorage, 3 días
 │   ├── useCitas.ts               # Supabase + localStorage, 7 días
 │   ├── useGrupo.ts               # Gestión de sesión grupal
+│   ├── useBienestar.ts           # Check-in emocional, solo localStorage
 │   └── useLocalStorage.ts        # Helper genérico
 ├── types/index.ts                # Interfaces TypeScript de todos los modelos
 └── lib/
@@ -120,6 +133,12 @@ Definir un componente dentro de otro causa que React lo destruya en cada render 
 - `medicacionesRecientes` = últimos 60 días (panel de corrección)
 - `tareas` = solo hoy; `tareasRecientes` = últimos 3 días (panel de corrección)
 - `citas` = últimos 7 días + futuro
+
+### Colores de sección en página Hoy
+Cada sección tiene su propio fondo y enlace al historial con pestaña pre-seleccionada:
+- Medicación → `sky-50` · `?tab=medicacion`
+- Tareas → `sage-50` · `?tab=tareas`
+- Citas → `amber-50` · `?tab=citas`
 
 ### Actualización optimista
 `toggleTomaDia`, `toggleCompletar` y similares actualizan el estado local primero y luego sincronizan con Supabase para UX inmediata sin esperar red.

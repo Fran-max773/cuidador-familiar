@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Heart, ChevronLeft } from "lucide-react";
+import { Heart, ChevronLeft, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const rutas: Record<string, string> = {
@@ -12,6 +12,7 @@ const rutas: Record<string, string> = {
   "/emergencias": "Emergencias",
   "/grupo":       "Grupo familiar",
   "/historial":   "Historial e impresión",
+  "/guia":        "Guía de uso",
 };
 
 export function Header() {
@@ -28,22 +29,32 @@ export function Header() {
     )}>
       <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
         {esHome ? (
-          <Link href="/" className="flex items-center gap-2 text-white/90 flex-shrink-0">
-            <Heart size={22} fill="currentColor" />
-          </Link>
+          <>
+            <Link href="/" className="flex items-center gap-2 text-white/90 flex-shrink-0">
+              <Heart size={22} fill="currentColor" />
+            </Link>
+            <Link
+              href="/guia"
+              className="ml-auto flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
+              aria-label="Ayuda"
+            >
+              <HelpCircle size={18} />
+              <span className="text-xs font-medium">Ayuda</span>
+            </Link>
+          </>
         ) : (
-          <button
-            onClick={() => router.back()}
-            className="flex items-center justify-center text-white/90 hover:text-white transition-colors flex-shrink-0 -ml-2 min-w-[44px] min-h-[44px]"
-            aria-label="Volver"
-          >
-            <ChevronLeft size={26} strokeWidth={2.5} />
-          </button>
-        )}
-        {!esHome && (
-          <h1 className="text-lg font-semibold text-white">
-            {rutas[pathname] ?? "Cuidador Familiar"}
-          </h1>
+          <>
+            <button
+              onClick={() => router.back()}
+              className="flex items-center justify-center text-white/90 hover:text-white transition-colors flex-shrink-0 -ml-2 min-w-[44px] min-h-[44px]"
+              aria-label="Volver"
+            >
+              <ChevronLeft size={26} strokeWidth={2.5} />
+            </button>
+            <h1 className="text-lg font-semibold text-white">
+              {rutas[pathname] ?? "Cuidador Familiar"}
+            </h1>
+          </>
         )}
       </div>
     </header>

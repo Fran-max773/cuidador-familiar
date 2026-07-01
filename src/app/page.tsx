@@ -4,6 +4,7 @@ import { FileText, Heart } from "lucide-react";
 import { MedicacionSection } from "@/components/hoy/MedicacionSection";
 import { TareasSection } from "@/components/hoy/TareasSection";
 import { CitasSection } from "@/components/hoy/CitasSection";
+import { TarjetaGuia } from "@/components/hoy/TarjetaGuia";
 
 function LinkHistorial({ href, texto, claseColor }: { href: string; texto: string; claseColor: string }) {
   return (
@@ -56,8 +57,10 @@ export default function HoyPage() {
         </div>
       </div>
 
+      <TarjetaGuia />
+
       <div className="space-y-4">
-        <div className="bg-sky-50 rounded-3xl p-4 border border-sky-100">
+        <div id="medicacion" className="bg-sky-50 rounded-3xl p-4 border border-sky-100">
           <MedicacionSection />
           <LinkHistorial
             href="/historial?tab=medicacion"
@@ -66,7 +69,7 @@ export default function HoyPage() {
           />
         </div>
 
-        <div className="bg-sage-50 rounded-3xl p-4 border border-sage-100">
+        <div id="tareas" className="bg-sage-50 rounded-3xl p-4 border border-sage-100">
           <TareasSection />
           <LinkHistorial
             href="/historial?tab=tareas"
@@ -75,7 +78,7 @@ export default function HoyPage() {
           />
         </div>
 
-        <div className="bg-amber-50 rounded-3xl p-4 border border-amber-100">
+        <div id="citas" className="bg-amber-50 rounded-3xl p-4 border border-amber-100">
           <CitasSection />
           <LinkHistorial
             href="/historial?tab=citas"

@@ -4,22 +4,30 @@ import { Send, Bot } from "lucide-react";
 import type { MensajeChat } from "@/types";
 import { cn } from "@/lib/utils";
 
-const MENSAJE_BIENVENIDA: MensajeChat = {
-  id: "bienvenida",
-  rol: "asistente",
-  texto:
-    "Hola. Estoy aquí para ayudarte. Puedes preguntarme sobre situaciones del día a día: agitación, desorientación, medicación, cómo comunicarte mejor… Cuéntame qué está pasando.",
-  timestamp: new Date().toISOString(),
-};
+const TEXTO_BIENVENIDA_DEFAULT =
+  "Hola. Estoy aquí para ayudarte. Puedes preguntarme sobre situaciones del día a día: agitación, desorientación, medicación, cómo comunicarte mejor… Cuéntame qué está pasando.";
 
-export function ChatInterface() {
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([MENSAJE_BIENVENIDA]);
+interface Props {
+  endpoint?: string;
+  mensajeInicial?: string;
+}
+
+export function ChatInterface({ endpoint = "/api/chat", mensajeInicial }: Props) {
+  const [mensajes, setMensajes] = useState<MensajeChat[]>(() => [
+    {
+      id: "bienvenida",
+      rol: "asistente",
+      texto: mensajeInicial ?? TEXTO_BIENVENIDA_DEFAULT,
+      timestamp: new Date().toISOString(),
+    },
+  ]);
   const [input, setInput]       = useState("");
   const [cargando, setCargando] = useState(false);
-  const endRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollAreaRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [mensajes, cargando]);
 
   const enviar = async () => {
@@ -39,7 +47,7 @@ export function ChatInterface() {
     setCargando(true);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mensajes: historialActualizado }),
@@ -75,7 +83,7 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto space-y-4 pb-4">
         {mensajes.map((msg) => (
           <div
             key={msg.id}
@@ -114,7 +122,6 @@ export function ChatInterface() {
           </div>
         )}
 
-        <div ref={endRef} />
       </div>
 
       <div className="flex gap-2 pt-3 border-t border-beige-200">
