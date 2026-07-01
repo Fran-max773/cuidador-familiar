@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Check, Plus, Trash2, Pencil, Pill, CalendarRange, Clock, X, ChevronDown } from "lucide-react";
+import { Check, Plus, Trash2, Pencil, CalendarRange, Clock, X, ChevronDown } from "lucide-react";
 import type { Medicacion } from "@/types";
 import { useMedicacion } from "@/hooks/useMedicacion";
 import { Card } from "@/components/ui/Card";
@@ -217,24 +217,17 @@ export function MedicacionSection() {
               </Card>
             );
           })}
-          <button
-            onClick={abrirNuevo}
-            className="w-full text-sm text-sage-600 hover:text-sage-700 py-2 text-center font-medium transition-colors"
-          >
-            + ¿Toma más medicamentos? Añadir otro
-          </button>
-
           {/* ── Panel de corrección de días anteriores ── */}
           {medicacionesRecientes.length > 0 && (
             <div className="pt-1">
               <button
                 onClick={() => setCorreccionAbierta((v) => !v)}
-                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 py-2 transition-colors"
+                className="w-full flex items-center justify-center gap-2 text-base text-amber-600 hover:text-amber-700 font-medium py-3 transition-colors"
               >
-                <Clock size={12} />
-                ¿Olvidaste marcar alguna toma anterior?
+                <Clock size={16} />
+                ¿Olvidaste marcar alguna toma?
                 <ChevronDown
-                  size={12}
+                  size={16}
                   className={cn("transition-transform", correccionAbierta && "rotate-180")}
                 />
               </button>
