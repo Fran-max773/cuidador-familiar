@@ -166,29 +166,26 @@ git push         # despliega automáticamente a Vercel
 
 ---
 
-## Trabajo completado
+## Última sesión
 
-- [x] Hero banner full-width en página principal
-- [x] Navegación: Header con ← atrás y botón "? Ayuda" en home, BottomNav 5 pestañas, badge perfil
-- [x] Botón SOS flotante (oculto en /emergencias)
-- [x] Impresión A4 landscape del historial (vista lista y calendario)
-- [x] Reconocimiento de voz (Web Speech API) en consulta de situación
-- [x] Rutas API de IA con try/catch completo
-- [x] Fix focus perdido en inputs de Perfil
-- [x] Citas realizadas: círculo-check + opacity + line-through
-- [x] Urgencia en tareas: botón ⚠ toggle + badge rojo
-- [x] Panel corrección de tomas: 7 días automáticos + selector de fecha libre (60 días atrás)
-- [x] Panel corrección de tareas de días anteriores (3 días)
-- [x] Aviso en Citas con citas pasadas sin confirmar
-- [x] Separación visual de secciones en Hoy con bandas de color y IDs de anclaje
-- [x] Enlace al historial al pie de cada sección → pestaña correcta (`?tab=`)
-- [x] Página `/guia` con emojis estilo footer, textos grandes, chat IA especializado
-- [x] `TarjetaGuia` descartable (solo sesión) en página Hoy
-- [x] Historial muestra rango de fechas activo bajo los botones de período
-- [x] Fix puntuación de bienestar: preguntas positivas usaban la escala invertida
+- Fix bienestar: preguntas positivas usaban escala directa en lugar de `6 - valor` (`useBienestar.ts`)
+- Página `/guia`: emojis en tarjetas de sección, texto ampliado para legibilidad, tarjeta de Perfil añadida
+- Historial: rango de fechas activo visible bajo los botones de período
+
+> Historial completo de cambios: `git log --oneline`
+
+---
 
 ## Tareas pendientes
 
-- [ ] Ampliar corrección de tareas más allá de 3 días en Supabase (actualmente limitado por el hook)
-- [ ] Considerar persistencia del perfil en Supabase para grupos familiares
-- [ ] Revisar comportamiento del Realtime de Supabase en conexión intermitente
+### Ampliar corrección de tareas más allá de 3 días
+**Por qué:** `useTareas.ts` solo expone `tareasRecientes` (3 días) para el panel de corrección. Los usuarios no pueden corregir olvidos de más de 3 días atrás.
+**Cómo:** Ampliar la ventana a 60 días igual que `useMedicacion.ts` (que ya expone `medicacionesRecientes`). Actualizar el panel de corrección en `TareasSection.tsx` para mostrar selector de fecha libre igual que el de medicación.
+
+### Persistir perfil en Supabase para grupos
+**Por qué:** El perfil (`cf_perfil`) es solo localStorage, invisible para otros miembros del grupo aunque compartan `grupo_id`.
+**Cómo:** Añadir tabla `perfiles` en Supabase con columna `grupo_id`. Crear hook `usePerfil.ts` siguiendo el patrón de `useMedicacion.ts`. Decisión pendiente: ¿un perfil por grupo o uno por dispositivo?
+
+### Reconexión de Supabase Realtime
+**Por qué:** Los hooks suscriben al canal Realtime pero no gestionan errores ni reconexión. En conexión intermitente (móvil) los cambios de otros miembros no se reciben.
+**Cómo:** Añadir handler de error en `channel.subscribe()` con reconexión exponencial. Probar con DevTools → Network → Offline/Online.
