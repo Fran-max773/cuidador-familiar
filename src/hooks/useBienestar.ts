@@ -23,11 +23,13 @@ export function useBienestar() {
     tesSientesAgotado: number;
     hasTenidoTiempoParaTi: number;
   }) => {
+    // Preguntas positivas: valor alto = bien = poca carga → se invierte con (6 - valor)
+    // tesSientesAgotado: valor alto = muy agotado = mucha carga → se suma directo
     const total =
-      respuestas.comoTeEncuentras +
-      respuestas.hasDormidoBien +
+      (6 - respuestas.comoTeEncuentras) +
+      (6 - respuestas.hasDormidoBien) +
       respuestas.tesSientesAgotado +
-      respuestas.hasTenidoTiempoParaTi;
+      (6 - respuestas.hasTenidoTiempoParaTi);
 
     const nuevo: CheckinBienestar = {
       id: crypto.randomUUID(),
