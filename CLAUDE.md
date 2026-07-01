@@ -10,7 +10,7 @@ Desplegada en **https://cuidador-familiar.vercel.app**
 | Capa | Tecnología |
 |------|-----------|
 | Framework | Next.js 14 (App Router) |
-| Estilos | Tailwind CSS 3 con colores custom: `sage`, `beige`, `warm`, `sky`, `rose` |
+| Estilos | Tailwind CSS 3 — colores custom: `sage`, `beige`, `warm`, `sky`, `rose` |
 | Base de datos | Supabase (Postgres + Realtime) |
 | IA | OpenAI `gpt-4o-mini` vía SDK `openai` v4 |
 | Iconos | lucide-react |
@@ -19,34 +19,37 @@ Desplegada en **https://cuidador-familiar.vercel.app**
 
 ---
 
-## Estructura de carpetas relevante
+## Estructura de carpetas
 
 ```
 src/
 ├── app/
-│   ├── page.tsx                  # Página "Hoy" (raíz)
-│   ├── historial/page.tsx        # Historial con tabs; acepta ?tab=medicacion|tareas|citas
-│   ├── perfil/page.tsx           # Perfil del familiar (localStorage)
-│   ├── asistente/page.tsx        # Chat IA
-│   ├── que-hago-si/page.tsx      # Consulta por situación + voz
-│   ├── bienestar/page.tsx        # Check-in emocional del cuidador
-│   ├── emergencias/page.tsx      # Contactos de emergencia + SOS
-│   ├── grupo/page.tsx            # Sincronización familiar (Supabase)
+│   ├── page.tsx                        # Página "Hoy" (raíz). IDs: #medicacion, #tareas, #citas
+│   ├── historial/page.tsx              # Historial; acepta ?tab=medicacion|tareas|citas
+│   ├── guia/page.tsx                   # Guía de uso para nuevos usuarios + chat IA
+│   ├── perfil/page.tsx                 # Perfil del familiar (localStorage)
+│   ├── asistente/page.tsx              # Chat IA general
+│   ├── que-hago-si/page.tsx            # Consulta por situación + voz
+│   ├── bienestar/page.tsx              # Check-in emocional del cuidador
+│   ├── emergencias/page.tsx            # Contactos de emergencia + SOS
+│   ├── grupo/page.tsx                  # Sincronización familiar (Supabase)
 │   └── api/
-│       ├── chat/route.ts         # POST → OpenAI chat
-│       └── consulta-situacion/route.ts  # POST → OpenAI consulta puntual
+│       ├── chat/route.ts               # POST → OpenAI (asistente general)
+│       ├── chat-guia/route.ts          # POST → OpenAI (ayuda sobre la app)
+│       └── consulta-situacion/route.ts # POST → OpenAI (consulta puntual + voz)
 ├── components/
 │   ├── layout/
-│   │   ├── Header.tsx            # Cabecera con botón ← atrás
-│   │   ├── BottomNav.tsx         # Nav inferior 5 pestañas + badge perfil
-│   │   └── SosButton.tsx         # Botón flotante rojo SOS
+│   │   ├── Header.tsx                  # Cabecera: ← atrás en sub-páginas, "? Ayuda" en home
+│   │   ├── BottomNav.tsx               # Nav inferior 5 pestañas + badge perfil (emojis)
+│   │   └── SosButton.tsx               # Botón flotante rojo SOS (oculto en /emergencias)
 │   ├── hoy/
 │   │   ├── MedicacionSection.tsx
 │   │   ├── TareasSection.tsx
 │   │   ├── CitasSection.tsx
-│   │   └── MensajeDiario.tsx
+│   │   ├── MensajeDiario.tsx
+│   │   └── TarjetaGuia.tsx             # Tarjeta "¿Primera vez?" (sesión, no persistida)
 │   ├── asistente/
-│   │   └── ChatInterface.tsx
+│   │   └── ChatInterface.tsx           # Props: endpoint?, mensajeInicial?
 │   ├── bienestar/
 │   │   ├── CheckinDiario.tsx
 │   │   └── GraficoSemanal.tsx
@@ -57,16 +60,19 @@ src/
 │       ├── Card.tsx
 │       └── Modal.tsx
 ├── hooks/
-│   ├── useMedicacion.ts          # Supabase + localStorage, 60 días
-│   ├── useTareas.ts              # Supabase + localStorage, 3 días
-│   ├── useCitas.ts               # Supabase + localStorage, 7 días
-│   ├── useGrupo.ts               # Gestión de sesión grupal
-│   ├── useBienestar.ts           # Check-in emocional, solo localStorage
-│   └── useLocalStorage.ts        # Helper genérico
-├── types/index.ts                # Interfaces TypeScript de todos los modelos
+│   ├── useMedicacion.ts                # Supabase + localStorage; expone medicaciones (hoy) y medicacionesRecientes (60 días)
+│   ├── useTareas.ts                    # Supabase + localStorage; expone tareas (hoy) y tareasRecientes (3 días)
+│   ├── useCitas.ts                     # Supabase + localStorage; últimos 7 días + futuro
+│   ├── useGrupo.ts                     # Gestión de sesión grupal
+│   ├── useBienestar.ts                 # Check-in emocional, solo localStorage
+│   └── useLocalStorage.ts              # Helper genérico
+├── data/
+│   ├── situaciones.ts                  # Catálogo de situaciones difíciles (qué hago si)
+│   └── conocimientos.ts                # Base de conocimiento del asistente IA
+├── types/index.ts                      # Interfaces TypeScript de todos los modelos
 └── lib/
-    ├── supabase.ts               # Cliente Supabase (sin auth)
-    └── utils.ts                  # cn(), formatearFechaCorta(), diasHasta()
+    ├── supabase.ts                     # Cliente Supabase (sin auth)
+    └── utils.ts                        # cn(), formatearFechaCorta(), diasHasta()
 ```
 
 ---
@@ -74,35 +80,38 @@ src/
 ## Variables de entorno
 
 ```env
-# .env.local (desarrollo)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 OPENAI_API_KEY=sk-...
 ```
 
-En Vercel: configurar las mismas tres variables en **Settings → Environment Variables → Production**.
-Para actualizar `OPENAI_API_KEY` en Vercel: `vercel env rm OPENAI_API_KEY production --yes` y luego `vercel env add OPENAI_API_KEY production`.
+Configurar en Vercel: **Settings → Environment Variables → Production**.
+Para rotar `OPENAI_API_KEY`: `vercel env rm OPENAI_API_KEY production --yes` → `vercel env add OPENAI_API_KEY production`.
 
 ---
 
 ## APIs de IA
 
 ### `POST /api/chat`
-Chat multi-turno para el asistente del cuidador.
-- Modelo: `gpt-4o-mini`
-- `max_tokens: 280`, `temperature: 0.6`
+Asistente general multi-turno para el cuidador.
+- Modelo: `gpt-4o-mini` · `max_tokens: 280` · `temperature: 0.6`
 - Historial: últimos 10 mensajes
 - Body: `{ mensajes: [{ rol: "usuario"|"asistente", texto: string }] }`
 - Response: `{ respuesta: string }` | `{ error: string }`
 
+### `POST /api/chat-guia`
+Chat especializado en explicar la propia app (usado en `/guia`).
+- Modelo: `gpt-4o-mini` · `max_tokens: 300` · `temperature: 0.5`
+- System prompt: describe todas las secciones, redirige preguntas off-topic, máx. 200 palabras
+- Mismo body/response que `/api/chat`
+
 ### `POST /api/consulta-situacion`
-Consulta puntual sobre una situación concreta (también usada desde micrófono vía Web Speech API).
-- Modelo: `gpt-4o-mini`
-- `max_tokens: 350`, `temperature: 0.5`
+Consulta puntual por situación concreta (también desde micrófono vía Web Speech API).
+- Modelo: `gpt-4o-mini` · `max_tokens: 350` · `temperature: 0.5`
 - Body: `{ situacion: string }`
 - Response: `{ respuesta: string }` | `{ error: string }`
 
-Ambas rutas tienen `try/catch` completo: errores de parseo JSON y errores de OpenAI devuelven JSON con `{ error }` en lugar de respuesta vacía.
+Todas las rutas tienen `try/catch` completo y devuelven `{ error }` en JSON ante cualquier fallo.
 
 ---
 
@@ -110,38 +119,39 @@ Ambas rutas tienen `try/catch` completo: errores de parseo JSON y errores de Ope
 
 | Dato | Sin grupo (local) | Con grupo (Supabase) |
 |------|------------------|---------------------|
-| Medicaciones | `cf_medicaciones` en localStorage | tabla `medicaciones` |
-| Tareas | `cf_tareas` en localStorage | tabla `tareas` |
-| Citas | `cf_citas` en localStorage | tabla `citas` |
-| Perfil | `cf_perfil` en localStorage | solo local (privado) |
-| Bienestar | `cf_bienestar` en localStorage | solo local |
+| Medicaciones | `cf_medicaciones` | tabla `medicaciones` |
+| Tareas | `cf_tareas` | tabla `tareas` |
+| Citas | `cf_citas` | tabla `citas` |
+| Perfil | `cf_perfil` | solo local (privado) |
+| Bienestar | `cf_bienestar` | solo local (privado) |
 
-Supabase no usa autenticación (`persistSession: false`). El grupo se identifica por `grupo_id` (UUID compartido). Todos los hooks suscriben a Realtime para sincronización instantánea entre miembros del grupo.
+Supabase sin auth (`persistSession: false`). El grupo se identifica por `grupo_id` (UUID compartido). Los hooks suscriben a Realtime para sincronización instantánea.
 
-### Formato clave de toma de medicación
-`completadasEn: string[]` — cada elemento es `"YYYY-MM-DD_HH:mm"` (fecha + hora separadas por `_`).
+**Formato clave de toma:** `completadasEn: string[]` → cada elemento es `"YYYY-MM-DD_HH:mm"`.
 
 ---
 
-## Patrones importantes
+## Patrones críticos
 
 ### Componentes dentro de componentes → PROHIBIDO
-Definir un componente dentro de otro causa que React lo destruya en cada render (focus perdido en inputs). Todos los sub-componentes deben ir a nivel de módulo. Ver `src/app/perfil/page.tsx` → `Campo` definido fuera de `PerfilPage`.
+Causa que React destruya el componente en cada render (focus perdido en inputs). Todos los sub-componentes van a nivel de módulo. Ejemplo: `Campo` en `src/app/perfil/page.tsx`.
 
-### Hooks: datos de hoy vs. datos recientes
-- `medicaciones` = solo hoy (sección principal sin cambios)
-- `medicacionesRecientes` = últimos 60 días (panel de corrección)
-- `tareas` = solo hoy; `tareasRecientes` = últimos 3 días (panel de corrección)
-- `citas` = últimos 7 días + futuro
+### Puntuación de bienestar
+`useBienestar.ts`: las preguntas **positivas** usan `6 - valor` en el cálculo del total; solo `tesSientesAgotado` (invertida) suma el valor directo. Total: 4 = mejor, 20 = peor. Umbrales: ≤10 = "bajo", ≤16 = "moderado", >16 = "alto".
 
-### Colores de sección en página Hoy
-Cada sección tiene su propio fondo y enlace al historial con pestaña pre-seleccionada:
-- Medicación → `sky-50` · `?tab=medicacion`
-- Tareas → `sage-50` · `?tab=tareas`
-- Citas → `amber-50` · `?tab=citas`
+### Scroll en ChatInterface
+Usa `scrollAreaRef` + `el.scrollTop = el.scrollHeight` sobre el contenedor con overflow. **No usar** `scrollIntoView` (desplaza toda la página).
 
 ### Actualización optimista
-`toggleTomaDia`, `toggleCompletar` y similares actualizan el estado local primero y luego sincronizan con Supabase para UX inmediata sin esperar red.
+`toggleTomaDia`, `toggleCompletar` y similares actualizan el estado local antes de sincronizar con Supabase.
+
+### Colores de sección en página Hoy
+- Medicación → `bg-sky-50` · `id="medicacion"` · historial `?tab=medicacion`
+- Tareas → `bg-sage-50` · `id="tareas"` · historial `?tab=tareas`
+- Citas → `bg-amber-50` · `id="citas"` · historial `?tab=citas`
+
+### BottomNav
+Usa emojis (no lucide-react). La página `/guia` replica este estilo en sus tarjetas de sección.
 
 ---
 
@@ -159,25 +169,26 @@ git push         # despliega automáticamente a Vercel
 ## Trabajo completado
 
 - [x] Hero banner full-width en página principal
-- [x] Navegación: botón ← atrás en Header, BottomNav con 5 pestañas, badge de perfil sin rellenar
-- [x] Botón SOS flotante (siempre visible, oculto en /emergencias)
-- [x] Impresión A4 landscape del historial (calendario y lista)
+- [x] Navegación: Header con ← atrás y botón "? Ayuda" en home, BottomNav 5 pestañas, badge perfil
+- [x] Botón SOS flotante (oculto en /emergencias)
+- [x] Impresión A4 landscape del historial (vista lista y calendario)
 - [x] Reconocimiento de voz (Web Speech API) en consulta de situación
-- [x] Fix errores JSON en rutas API de IA (try/catch completo)
-- [x] Fix OpenAI API key en Vercel (clave caducada reemplazada)
-- [x] Fix focus perdido en inputs de Perfil (Campo movido fuera del componente)
-- [x] Citas realizadas: círculo-check + opacity + line-through (sin doble marcado)
-- [x] Urgencia en tareas: botón ⚠ toggle + badge rojo "Urgente"
-- [x] Marcar tomas de medicación de días anteriores (panel colapsable)
-- [x] Panel de corrección expandido: 7 días automáticos + selector de fecha libre
-- [x] Panel de corrección de tareas de días anteriores (últimos 3 días)
-- [x] Aviso en Citas cuando hay citas pasadas sin confirmar
-- [x] Separación visual de secciones en página Hoy (bandas sky/sage/amber)
-- [x] Enlace al historial al final de cada sección → abre pestaña correcta (`?tab=`)
-- [x] Historial lee `?tab=` de la URL para pre-seleccionar pestaña
+- [x] Rutas API de IA con try/catch completo
+- [x] Fix focus perdido en inputs de Perfil
+- [x] Citas realizadas: círculo-check + opacity + line-through
+- [x] Urgencia en tareas: botón ⚠ toggle + badge rojo
+- [x] Panel corrección de tomas: 7 días automáticos + selector de fecha libre (60 días atrás)
+- [x] Panel corrección de tareas de días anteriores (3 días)
+- [x] Aviso en Citas con citas pasadas sin confirmar
+- [x] Separación visual de secciones en Hoy con bandas de color y IDs de anclaje
+- [x] Enlace al historial al pie de cada sección → pestaña correcta (`?tab=`)
+- [x] Página `/guia` con emojis estilo footer, textos grandes, chat IA especializado
+- [x] `TarjetaGuia` descartable (solo sesión) en página Hoy
+- [x] Historial muestra rango de fechas activo bajo los botones de período
+- [x] Fix puntuación de bienestar: preguntas positivas usaban la escala invertida
 
 ## Tareas pendientes
 
-- [ ] Evaluar si ampliar corrección de tareas más allá de 3 días (actualmente carga solo 3 días en Supabase)
+- [ ] Ampliar corrección de tareas más allá de 3 días en Supabase (actualmente limitado por el hook)
 - [ ] Considerar persistencia del perfil en Supabase para grupos familiares
-- [ ] Revisar comportamiento del Realtime de Supabase en dispositivos con conexión intermitente
+- [ ] Revisar comportamiento del Realtime de Supabase en conexión intermitente
