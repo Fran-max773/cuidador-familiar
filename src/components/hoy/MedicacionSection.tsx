@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Check, Plus, Trash2, Pencil, Pill, CalendarRange, Clock, X } from "lucide-react";
+import { Check, Plus, Trash2, Pencil, Pill, CalendarRange, Clock, X, ChevronDown } from "lucide-react";
 import type { Medicacion } from "@/types";
 import { useMedicacion } from "@/hooks/useMedicacion";
 import { Card } from "@/components/ui/Card";
@@ -39,11 +39,26 @@ function diasRestantes(fechaFin: string): number {
 
 // ── Componente ───────────────────────────────────────────────────────────────
 
+// Genera los últimos N días anteriores a hoy con etiqueta legible
+function diasAnteriores(n: number) {
+  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (i + 1));
+    const fecha = d.toISOString().split("T")[0];
+    const etiqueta = i === 0
+      ? `Ayer · ${d.getDate()} ${meses[d.getMonth()]}`
+      : `Hace ${i + 1} días · ${d.getDate()} ${meses[d.getMonth()]}`;
+    return { fecha, etiqueta };
+  });
+}
+
 export function MedicacionSection() {
-  const { medicaciones, tomadaHoy, todasTomadas, agregar, editar, toggleToma, eliminar } =
-    useMedicacion();
+  const { medicaciones, medicacionesRecientes, tomadaHoy, todasTomadas, tomadaEn,
+          agregar, editar, toggleToma, toggleTomaDia, eliminar } = useMedicacion();
 
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [correccionAbierta, setCorreccionAbierta] = useState(false);
   const [editandoId, setEditandoId]     = useState<string | null>(null);
   const [nombre, setNombre]             = useState("");
   const [horas, setHoras]               = useState<string[]>(["08:00"]);
@@ -208,6 +223,74 @@ export function MedicacionSection() {
           >
             + ¿Toma más medicamentos? Añadir otro
           </button>
+
+          {/* ── Panel de corrección de días anteriores ── */}
+          {medicacionesRecientes.length > 0 && (
+            <div className="pt-1">
+              <button
+                onClick={() => setCorreccionAbierta((v) => !v)}
+                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 py-2 transition-colors"
+              >
+                <Clock size={12} />
+                ¿Olvidaste marcar alguna toma anterior?
+                <ChevronDown
+                  size={12}
+                  className={cn("transition-transform", correccionAbierta && "rotate-180")}
+                />
+              </button>
+
+              {correccionAbierta && (
+                <div className="mt-2 space-y-4 border-t border-beige-100 pt-3">
+                  {diasAnteriores(3).map(({ fecha, etiqueta }) => {
+                    const medsDelDia = medicacionesRecientes.filter(
+                      (m) => m.fechaInicio <= fecha && fecha <= m.fechaFin
+                    );
+                    if (medsDelDia.length === 0) return null;
+                    return (
+                      <div key={fecha}>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                          {etiqueta}
+                        </p>
+                        <div className="space-y-1.5">
+                          {medsDelDia.map((med) =>
+                            med.horas.map((hora) => {
+                              const tomada = tomadaEn(med, fecha, hora);
+                              return (
+                                <button
+                                  key={`${med.id}-${hora}`}
+                                  onClick={() => toggleTomaDia(med.id, fecha, hora)}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left text-sm",
+                                    tomada
+                                      ? "bg-sage-100 text-sage-700"
+                                      : "bg-beige-50 hover:bg-beige-100 text-gray-600"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all",
+                                    tomada
+                                      ? "bg-sage-500 border-sage-500 text-white"
+                                      : "border-sage-300"
+                                  )}>
+                                    {tomada && <Check size={12} strokeWidth={3} />}
+                                  </span>
+                                  <span className="flex-1 font-medium">{med.nombre}</span>
+                                  <span className="text-gray-400 flex-shrink-0">{hora}</span>
+                                  <span className={cn("text-xs flex-shrink-0", tomada ? "text-sage-600" : "text-gray-400")}>
+                                    {tomada ? "Tomado" : "No marcado"}
+                                  </span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

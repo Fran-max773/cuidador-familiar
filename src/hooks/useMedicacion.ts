@@ -6,9 +6,12 @@ import { getSesion } from "./useGrupo";
 import type { Medicacion } from "@/types";
 
 function hoyStr() { return new Date().toISOString().split("T")[0]; }
+function hace3diasStr() {
+  const d = new Date(); d.setDate(d.getDate() - 3);
+  return d.toISOString().split("T")[0];
+}
 function clave(fecha: string, hora: string) { return `${fecha}_${hora}`; }
 
-// ── Mapeo Supabase ↔ TypeScript ──────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromDb(r: any): Medicacion {
   return {
@@ -25,13 +28,11 @@ function fromDb(r: any): Medicacion {
 export function useMedicacion() {
   const [sesion, setSesion] = useState(getSesion);
 
-  // Siempre inicializamos ambos estados (reglas de hooks)
   const [medicacionesLocal, setMedicacionesLocal] = useLocalStorage<Medicacion[]>("cf_medicaciones", []);
   const [medicacionesRemoto, setMedicacionesRemoto] = useState<Medicacion[]>([]);
 
   useEffect(() => { setSesion(getSesion()); }, []);
 
-  // Carga y suscripción en tiempo real cuando hay grupo
   useEffect(() => {
     if (!sesion) return;
     const hoy = hoyStr();
@@ -42,7 +43,7 @@ export function useMedicacion() {
         .select("*")
         .eq("grupo_id", sesion.grupoId)
         .lte("fecha_inicio", hoy)
-        .gte("fecha_fin", hoy);
+        .gte("fecha_fin", hace3diasStr()); // carga últimos 3 días para corrección
       setMedicacionesRemoto((data ?? []).map(fromDb));
     };
     cargar();
@@ -66,30 +67,25 @@ export function useMedicacion() {
   }, [sesion?.grupoId]);
 
   const hoy = hoyStr();
-  const todas = sesion ? medicacionesRemoto : medicacionesLocal.filter(
-    (m) => m.fechaInicio <= hoy && hoy <= m.fechaFin
-  );
 
-  const tomadaHoy = (m: Medicacion, hora: string) =>
-    m.completadasEn.includes(clave(hoy, hora));
+  // Medicamentos activos HOY → sección principal
+  const medicaciones = sesion
+    ? medicacionesRemoto.filter((m) => m.fechaInicio <= hoy && hoy <= m.fechaFin)
+    : medicacionesLocal.filter((m) => m.fechaInicio <= hoy && hoy <= m.fechaFin);
 
+  // Todos los cargados (últimos 3 días + hoy) → panel de corrección
+  const medicacionesRecientes = sesion
+    ? medicacionesRemoto
+    : medicacionesLocal.filter((m) => m.fechaFin >= hace3diasStr() && m.fechaInicio <= hoy);
+
+  // ── Helpers de toma ────────────────────────────────────────────────────────
+  const tomadaEn = (m: Medicacion, fecha: string, hora: string) =>
+    m.completadasEn.includes(clave(fecha, hora));
+
+  const tomadaHoy = (m: Medicacion, hora: string) => tomadaEn(m, hoy, hora);
   const todasTomadas = (m: Medicacion) => m.horas.every((h) => tomadaHoy(m, h));
 
-  const agregar = async (datos: Omit<Medicacion, "id" | "completadasEn">) => {
-    if (!sesion) {
-      setMedicacionesLocal((prev) => [
-        ...prev, { ...datos, id: crypto.randomUUID(), completadasEn: [] },
-      ]);
-      return;
-    }
-    await supabase.from("medicaciones").insert({
-      grupo_id: sesion.grupoId,
-      nombre: datos.nombre, horas: datos.horas, dosis: datos.dosis,
-      fecha_inicio: datos.fechaInicio, fecha_fin: datos.fechaFin,
-      completadas_en: [],
-    });
-  };
-
+  // ── Toggle para HOY (uso normal) ───────────────────────────────────────────
   const toggleToma = async (id: string, hora: string) => {
     if (!sesion) {
       setMedicacionesLocal((prev) =>
@@ -115,6 +111,54 @@ export function useMedicacion() {
     await supabase.from("medicaciones")
       .update({ completadas_en: nuevas })
       .eq("id", id).eq("grupo_id", sesion.grupoId);
+  };
+
+  // ── Toggle para CUALQUIER FECHA (corrección de días anteriores) ────────────
+  const toggleTomaDia = async (id: string, fecha: string, hora: string) => {
+    const k = clave(fecha, hora);
+
+    if (!sesion) {
+      setMedicacionesLocal((prev) =>
+        prev.map((m) => {
+          if (m.id !== id) return m;
+          return {
+            ...m,
+            completadasEn: m.completadasEn.includes(k)
+              ? m.completadasEn.filter((c) => c !== k)
+              : [...m.completadasEn, k],
+          };
+        })
+      );
+      return;
+    }
+    const med = medicacionesRemoto.find((m) => m.id === id);
+    if (!med) return;
+    const nuevas = med.completadasEn.includes(k)
+      ? med.completadasEn.filter((c) => c !== k)
+      : [...med.completadasEn, k];
+    // Actualización optimista
+    setMedicacionesRemoto((prev) =>
+      prev.map((m) => m.id === id ? { ...m, completadasEn: nuevas } : m)
+    );
+    await supabase.from("medicaciones")
+      .update({ completadas_en: nuevas })
+      .eq("id", id).eq("grupo_id", sesion.grupoId);
+  };
+
+  // ── CRUD ───────────────────────────────────────────────────────────────────
+  const agregar = async (datos: Omit<Medicacion, "id" | "completadasEn">) => {
+    if (!sesion) {
+      setMedicacionesLocal((prev) => [
+        ...prev, { ...datos, id: crypto.randomUUID(), completadasEn: [] },
+      ]);
+      return;
+    }
+    await supabase.from("medicaciones").insert({
+      grupo_id: sesion.grupoId,
+      nombre: datos.nombre, horas: datos.horas, dosis: datos.dosis,
+      fecha_inicio: datos.fechaInicio, fecha_fin: datos.fechaFin,
+      completadas_en: [],
+    });
   };
 
   const editar = async (id: string, datos: Omit<Medicacion, "id" | "completadasEn">) => {
@@ -143,5 +187,9 @@ export function useMedicacion() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { medicaciones: todas, tomadaHoy, todasTomadas, agregar, editar, toggleToma, eliminar };
+  return {
+    medicaciones, medicacionesRecientes,
+    tomadaHoy, todasTomadas, tomadaEn,
+    agregar, editar, toggleToma, toggleTomaDia, eliminar,
+  };
 }
