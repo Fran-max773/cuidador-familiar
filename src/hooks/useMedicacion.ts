@@ -6,8 +6,8 @@ import { getSesion } from "./useGrupo";
 import type { Medicacion } from "@/types";
 
 function hoyStr() { return new Date().toISOString().split("T")[0]; }
-function hace3diasStr() {
-  const d = new Date(); d.setDate(d.getDate() - 3);
+function haceNDiasStr(n: number) {
+  const d = new Date(); d.setDate(d.getDate() - n);
   return d.toISOString().split("T")[0];
 }
 function clave(fecha: string, hora: string) { return `${fecha}_${hora}`; }
@@ -43,7 +43,7 @@ export function useMedicacion() {
         .select("*")
         .eq("grupo_id", sesion.grupoId)
         .lte("fecha_inicio", hoy)
-        .gte("fecha_fin", hace3diasStr()); // carga últimos 3 días para corrección
+        .gte("fecha_fin", haceNDiasStr(60)); // carga últimos 60 días para corrección
       setMedicacionesRemoto((data ?? []).map(fromDb));
     };
     cargar();
@@ -76,7 +76,7 @@ export function useMedicacion() {
   // Todos los cargados (últimos 3 días + hoy) → panel de corrección
   const medicacionesRecientes = sesion
     ? medicacionesRemoto
-    : medicacionesLocal.filter((m) => m.fechaFin >= hace3diasStr() && m.fechaInicio <= hoy);
+    : medicacionesLocal.filter((m) => m.fechaFin >= haceNDiasStr(60) && m.fechaInicio <= hoy);
 
   // ── Helpers de toma ────────────────────────────────────────────────────────
   const tomadaEn = (m: Medicacion, fecha: string, hora: string) =>

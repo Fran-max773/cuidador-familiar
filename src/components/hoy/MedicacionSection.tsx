@@ -59,6 +59,8 @@ export function MedicacionSection() {
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [correccionAbierta, setCorreccionAbierta] = useState(false);
+  const [fechaElegida, setFechaElegida] = useState("");
+  const ayer = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split("T")[0]; })();
   const [editandoId, setEditandoId]     = useState<string | null>(null);
   const [nombre, setNombre]             = useState("");
   const [horas, setHoras]               = useState<string[]>(["08:00"]);
@@ -234,7 +236,7 @@ export function MedicacionSection() {
 
               {correccionAbierta && (
                 <div className="mt-2 space-y-4 border-t border-beige-100 pt-3">
-                  {diasAnteriores(3).map(({ fecha, etiqueta }) => {
+                  {diasAnteriores(7).map(({ fecha, etiqueta }) => {
                     const medsDelDia = medicacionesRecientes.filter(
                       (m) => m.fechaInicio <= fecha && fecha <= m.fechaFin
                     );
@@ -280,6 +282,61 @@ export function MedicacionSection() {
                       </div>
                     );
                   })}
+
+                  {/* ── Selector de fecha personalizada ── */}
+                  <div className="border-t border-beige-100 pt-4 mt-2">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      O elige un día concreto
+                    </p>
+                    <input
+                      type="date"
+                      max={ayer}
+                      value={fechaElegida}
+                      onChange={(e) => setFechaElegida(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-beige-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    />
+                    {fechaElegida && (() => {
+                      const medsDelDia = medicacionesRecientes.filter(
+                        (m) => m.fechaInicio <= fechaElegida && fechaElegida <= m.fechaFin
+                      );
+                      if (medsDelDia.length === 0) return (
+                        <p className="text-sm text-gray-400 text-center mt-3 py-2">
+                          No hay medicamentos registrados para ese día.
+                        </p>
+                      );
+                      return (
+                        <div className="mt-3 space-y-1.5">
+                          {medsDelDia.map((med) =>
+                            med.horas.map((hora) => {
+                              const tomada = tomadaEn(med, fechaElegida, hora);
+                              return (
+                                <button
+                                  key={`custom-${med.id}-${hora}`}
+                                  onClick={() => toggleTomaDia(med.id, fechaElegida, hora)}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left text-sm",
+                                    tomada ? "bg-sage-100 text-sage-700" : "bg-beige-50 hover:bg-beige-100 text-gray-600"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 transition-all",
+                                    tomada ? "bg-sage-500 border-sage-500 text-white" : "border-sage-300"
+                                  )}>
+                                    {tomada && <Check size={12} strokeWidth={3} />}
+                                  </span>
+                                  <span className="flex-1 font-medium">{med.nombre}</span>
+                                  <span className="text-gray-400 flex-shrink-0">{hora}</span>
+                                  <span className={cn("text-xs flex-shrink-0", tomada ? "text-sage-600" : "text-gray-400")}>
+                                    {tomada ? "Tomado" : "No marcado"}
+                                  </span>
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
             </div>
