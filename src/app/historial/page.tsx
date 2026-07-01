@@ -465,7 +465,12 @@ function CalendarioCitas({ citas, calDesde, calHasta }: { citas: Cita[]; calDesd
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function HistorialPage() {
-  const [tab, setTab]                   = useState<Tab>("tareas");
+  const [tab, setTab] = useState<Tab>("tareas");
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("tab");
+    if (p === "medicacion" || p === "tareas" || p === "citas") setTab(p);
+  }, []);
   const [periodoIdx, setPeriodo]         = useState(1);
   const [tareas, setTareas]             = useState<Tarea[]>([]);
   const [citas, setCitas]               = useState<Cita[]>([]);

@@ -5,6 +5,18 @@ import { MedicacionSection } from "@/components/hoy/MedicacionSection";
 import { TareasSection } from "@/components/hoy/TareasSection";
 import { CitasSection } from "@/components/hoy/CitasSection";
 
+function LinkHistorial({ href, texto, claseColor }: { href: string; texto: string; claseColor: string }) {
+  return (
+    <Link
+      href={href}
+      className={`mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-2xl border border-dashed text-sm font-medium hover:bg-white/60 active:scale-95 transition-all ${claseColor}`}
+    >
+      <FileText size={15} />
+      {texto}
+    </Link>
+  );
+}
+
 function useFechaHoy() {
   const diasSemana = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const meses = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -44,18 +56,33 @@ export default function HoyPage() {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <MedicacionSection />
-        <TareasSection />
-        <CitasSection />
+      <div className="space-y-4">
+        <div className="bg-sky-50 rounded-3xl p-4 border border-sky-100">
+          <MedicacionSection />
+          <LinkHistorial
+            href="/historial?tab=medicacion"
+            texto="Ver historial de medicación"
+            claseColor="border-sky-300 text-sky-600"
+          />
+        </div>
 
-        <Link
-          href="/historial"
-          className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl border-2 border-dashed border-sky-200 text-sky-600 hover:bg-sky-50 active:bg-sky-100 transition-colors font-medium text-sm"
-        >
-          <FileText size={18} />
-          Ver historial e imprimir registros
-        </Link>
+        <div className="bg-sage-50 rounded-3xl p-4 border border-sage-100">
+          <TareasSection />
+          <LinkHistorial
+            href="/historial?tab=tareas"
+            texto="Ver historial de tareas"
+            claseColor="border-sage-300 text-sage-600"
+          />
+        </div>
+
+        <div className="bg-amber-50 rounded-3xl p-4 border border-amber-100">
+          <CitasSection />
+          <LinkHistorial
+            href="/historial?tab=citas"
+            texto="Ver historial de citas"
+            claseColor="border-amber-300 text-amber-700"
+          />
+        </div>
       </div>
     </div>
   );
