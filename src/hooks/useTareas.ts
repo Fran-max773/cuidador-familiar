@@ -6,6 +6,10 @@ import { getSesion } from "./useGrupo";
 import type { Tarea } from "@/types";
 
 const HOY = new Date().toISOString().split("T")[0];
+function hace3diasStr() {
+  const d = new Date(); d.setDate(d.getDate() - 3);
+  return d.toISOString().split("T")[0];
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromDb(r: any): Tarea {
@@ -35,7 +39,8 @@ export function useTareas() {
         .from("tareas")
         .select("*")
         .eq("grupo_id", sesion.grupoId)
-        .eq("fecha", HOY);
+        .gte("fecha", hace3diasStr())
+        .lte("fecha", HOY);
       setTareasRemoto((data ?? []).map(fromDb));
     };
     cargar();
@@ -58,7 +63,13 @@ export function useTareas() {
     return () => { supabase.removeChannel(channel); };
   }, [sesion?.grupoId]);
 
-  const tareas = sesion ? tareasRemoto : tareasLocal.filter((t) => t.fecha === HOY);
+  const tareas = sesion
+    ? tareasRemoto.filter((t) => t.fecha === HOY)
+    : tareasLocal.filter((t) => t.fecha === HOY);
+
+  const tareasRecientes = sesion
+    ? tareasRemoto
+    : tareasLocal.filter((t) => t.fecha >= hace3diasStr() && t.fecha <= HOY);
 
   const agregar = async (texto: string, prioridad: Tarea["prioridad"] = "normal") => {
     if (!sesion) {
@@ -130,5 +141,5 @@ export function useTareas() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { tareas, agregar, toggleCompletar, editar, eliminar, togglePrioridad };
+  return { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad };
 }

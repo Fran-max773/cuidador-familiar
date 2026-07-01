@@ -75,6 +75,12 @@ export function CitasSection() {
         </div>
       )}
 
+      {citas.some((c) => c.fecha < hoy && !c.realizada) && (
+        <p className="text-sm text-gray-400 mb-3 text-center">
+          Tienes citas pasadas sin confirmar — pulsa el círculo para marcarlas como realizadas
+        </p>
+      )}
+
       {citas.length === 0 ? (
         <Card>
           <p className="text-gray-500 text-center font-medium py-1">

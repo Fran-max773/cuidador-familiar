@@ -1,16 +1,31 @@
 "use client";
 import { useState } from "react";
-import { Check, Plus, Trash2, Pencil, AlertTriangle } from "lucide-react";
+import { Check, Plus, Trash2, Pencil, AlertTriangle, Clock, ChevronDown } from "lucide-react";
 import { useTareas } from "@/hooks/useTareas";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
+function diasAnteriores(n: number) {
+  const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (i + 1));
+    const fecha = d.toISOString().split("T")[0];
+    const etiqueta = i === 0
+      ? `Ayer · ${d.getDate()} ${meses[d.getMonth()]}`
+      : `Hace ${i + 1} días · ${d.getDate()} ${meses[d.getMonth()]}`;
+    return { fecha, etiqueta };
+  });
+}
+
 export function TareasSection() {
-  const { tareas, agregar, toggleCompletar, editar, eliminar, togglePrioridad } = useTareas();
+  const { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad } = useTareas();
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [textoEdicion, setTextoEdicion] = useState("");
+  const [correccionAbierta, setCorreccionAbierta] = useState(false);
+  const hoy = new Date().toISOString().split("T")[0];
 
   const handleAgregar = () => {
     if (!nuevaTarea.trim()) return;
@@ -156,6 +171,54 @@ export function TareasSection() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Panel de corrección de días anteriores ── */}
+      {tareasRecientes.some((t) => !t.completada && t.fecha < hoy) && (
+        <div className="pt-1">
+          <button
+            onClick={() => setCorreccionAbierta((v) => !v)}
+            className="w-full flex items-center justify-center gap-2 text-base text-amber-600 hover:text-amber-700 font-medium py-3 transition-colors"
+          >
+            <Clock size={16} />
+            ¿Olvidaste completar alguna tarea?
+            <ChevronDown
+              size={16}
+              className={cn("transition-transform", correccionAbierta && "rotate-180")}
+            />
+          </button>
+
+          {correccionAbierta && (
+            <div className="mt-2 space-y-4 border-t border-beige-100 pt-3">
+              {diasAnteriores(3).map(({ fecha, etiqueta }) => {
+                const pendientesDelDia = tareasRecientes.filter(
+                  (t) => t.fecha === fecha && !t.completada
+                );
+                if (pendientesDelDia.length === 0) return null;
+                return (
+                  <div key={fecha}>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      {etiqueta}
+                    </p>
+                    <div className="space-y-1.5">
+                      {pendientesDelDia.map((tarea) => (
+                        <button
+                          key={tarea.id}
+                          onClick={() => toggleCompletar(tarea.id)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-beige-50 hover:bg-beige-100 text-gray-600 transition-all text-left text-sm"
+                        >
+                          <span className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-sage-300" />
+                          <span className="flex-1 font-medium">{tarea.texto}</span>
+                          <span className="text-xs text-gray-400 flex-shrink-0">Marcar hecha</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </section>
