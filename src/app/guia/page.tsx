@@ -200,7 +200,7 @@ export default function GuiaPage() {
             ? `Cuidando a ${nombreFamiliar}`
             : "Bienvenido a Cuidador Familiar"}
         </h2>
-        <p className="text-sky-100 text-sm leading-relaxed">
+        <p className="text-sky-100 text-base leading-relaxed">
           {nombreFamiliar
             ? `Esta app está diseñada para ayudarte a organizar el cuidado de ${nombreFamiliar} sin olvidarte de nada, y coordinarte con el resto de la familia.`
             : "Esta app está diseñada para ayudarte a organizar el cuidado de tu familiar sin olvidarte de nada, y coordinarte con el resto de la familia."}
@@ -215,12 +215,12 @@ export default function GuiaPage() {
               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl ${bg}`}>
                 {emoji}
               </div>
-              <h3 className="font-semibold text-gray-800 text-base">{titulo}</h3>
+              <h3 className="font-semibold text-gray-800 text-lg">{titulo}</h3>
             </div>
-            <p className="text-gray-600 text-sm leading-relaxed">{descripcion}</p>
-            <ul className="space-y-1.5">
+            <p className="text-gray-600 text-base leading-relaxed">{descripcion}</p>
+            <ul className="space-y-2">
               {tips.map((tip) => (
-                <li key={tip} className="flex items-start gap-2 text-xs text-gray-500">
+                <li key={tip} className="flex items-start gap-2 text-sm text-gray-500">
                   <span className="mt-0.5 text-sage-400 font-bold flex-shrink-0">·</span>
                   {tip}
                 </li>
@@ -228,7 +228,7 @@ export default function GuiaPage() {
             </ul>
             <Link
               href={href}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors pt-1"
+              className="inline-flex items-center gap-1.5 text-base font-medium text-sage-600 hover:text-sage-700 transition-colors pt-1"
             >
               <LinkIcono size={15} />
               {linkTexto}

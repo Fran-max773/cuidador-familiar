@@ -40,6 +40,13 @@ function diaCorto(fecha: string) {
   return `${d}/${m}`;
 }
 
+function formatearFechaLarga(fechaStr: string): string {
+  const meses = ["enero","febrero","marzo","abril","mayo","junio",
+                 "julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const [, m, d] = fechaStr.split("-");
+  return `${parseInt(d)} de ${meses[parseInt(m) - 1]}`;
+}
+
 function getDiasEnRango(desde: string, hasta: string): string[] {
   const dias: string[] = [];
   const cur = new Date(desde + "T00:00:00");
@@ -589,21 +596,28 @@ export default function HistorialPage() {
         {/* Controles — ocultos al imprimir */}
         <div className="no-print space-y-4">
           {/* Selector de período */}
-          <div className="flex gap-2 flex-wrap">
-            {PERIODOS.map((p, i) => (
-              <button
-                key={i}
-                onClick={() => setPeriodo(i)}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-sm font-medium border transition-all",
-                  periodoIdx === i
-                    ? "bg-sky-500 text-white border-sky-500"
-                    : "border-beige-200 text-gray-600 hover:bg-beige-50"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <div className="flex gap-2 flex-wrap">
+              {PERIODOS.map((p, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPeriodo(i)}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-sm font-medium border transition-all",
+                    periodoIdx === i
+                      ? "bg-sky-500 text-white border-sky-500"
+                      : "border-beige-200 text-gray-600 hover:bg-beige-50"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            {!vistaCalendario && (
+              <p className="text-xs text-gray-400 text-center">
+                Del {formatearFechaLarga(desde)} al {formatearFechaLarga(hasta)} de {new Date(hasta).getFullYear()}
+              </p>
+            )}
           </div>
 
           {/* Pestañas */}
