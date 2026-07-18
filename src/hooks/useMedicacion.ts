@@ -153,12 +153,14 @@ export function useMedicacion() {
       ]);
       return;
     }
-    await supabase.from("medicaciones").insert({
+    const { data, error } = await supabase.from("medicaciones").insert({
       grupo_id: sesion.grupoId,
       nombre: datos.nombre, horas: datos.horas, dosis: datos.dosis,
       fecha_inicio: datos.fechaInicio, fecha_fin: datos.fechaFin,
       completadas_en: [],
-    });
+    }).select().single();
+    if (error) { console.error("Error al añadir medicación:", error); return; }
+    setMedicacionesRemoto((prev) => prev.some((m) => m.id === data.id) ? prev : [...prev, fromDb(data)]);
   };
 
   const editar = async (id: string, datos: Omit<Medicacion, "id" | "completadasEn">) => {

@@ -73,8 +73,13 @@ export function useCitas() {
       setCitasLocal((prev) => [...prev, { ...datos, id: crypto.randomUUID(), realizada: false }]);
       return;
     }
-    await supabase.from("citas")
-      .insert({ grupo_id: sesion.grupoId, ...datos, realizada: false });
+    const { data, error } = await supabase.from("citas")
+      .insert({ grupo_id: sesion.grupoId, ...datos, realizada: false })
+      .select().single();
+    if (error) { console.error("Error al añadir cita:", error); return; }
+    setCitasRemoto((p) => p.some((c) => c.id === data.id) ? p :
+      [...p, fromDb(data)].sort((a, b) =>
+        `${a.fecha}${a.hora}`.localeCompare(`${b.fecha}${b.hora}`)));
   };
 
   const marcarRealizada = async (id: string, realizada: boolean) => {
