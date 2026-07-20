@@ -16,6 +16,7 @@ export interface Tarea {
   prioridad: "alta" | "normal" | "baja";
   completadaPor?: string;
   asignadaA?: string;
+  creadaPor?: string;
 }
 
 export interface Cita {

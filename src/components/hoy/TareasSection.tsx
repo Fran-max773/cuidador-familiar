@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
-import { Check, Plus, Trash2, Pencil, AlertTriangle, Clock, ChevronDown } from "lucide-react";
+import { Check, Plus, Trash2, Pencil, AlertTriangle, Clock, ChevronDown, Bell, ArchiveX } from "lucide-react";
 import { useTareas } from "@/hooks/useTareas";
+import { useMiembros } from "@/hooks/useMiembros";
+import { getSesion } from "@/hooks/useGrupo";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -19,28 +21,67 @@ function diasAnteriores(n: number) {
   });
 }
 
+// Fila de pastillas para elegir a quién se asigna una tarea ("Libre" + cada miembro)
+function SelectorAsignacion({
+  miembros, valor, onCambiar,
+}: { miembros: string[]; valor: string; onCambiar: (v: string) => void }) {
+  return (
+    <div className="flex gap-2 flex-wrap">
+      <button
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => onCambiar("")}
+        className={cn(
+          "text-xs px-3 py-1.5 rounded-full border transition-colors",
+          valor === "" ? "bg-sage-500 text-white border-sage-500" : "border-beige-200 text-gray-600 hover:bg-beige-100"
+        )}
+      >
+        Libre
+      </button>
+      {miembros.map((m) => (
+        <button
+          key={m}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onCambiar(m)}
+          className={cn(
+            "text-xs px-3 py-1.5 rounded-full border transition-colors",
+            valor === m ? "bg-sky-500 text-white border-sky-500" : "border-beige-200 text-gray-600 hover:bg-beige-100"
+          )}
+        >
+          {m}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function TareasSection() {
-  const { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad } = useTareas();
+  const { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad, archivar } = useTareas();
+  const miembros = useMiembros();
+  const miNombre = getSesion()?.miNombre ?? "";
   const [nuevaTarea, setNuevaTarea] = useState("");
+  const [asignacionNueva, setAsignacionNueva] = useState("");
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [textoEdicion, setTextoEdicion] = useState("");
+  const [asignacionEdicion, setAsignacionEdicion] = useState("");
   const [correccionAbierta, setCorreccionAbierta] = useState(false);
   const hoy = new Date().toISOString().split("T")[0];
 
   const handleAgregar = () => {
     if (!nuevaTarea.trim()) return;
-    agregar(nuevaTarea.trim());
+    agregar(nuevaTarea.trim(), "normal", asignacionNueva);
     setNuevaTarea("");
+    setAsignacionNueva("");
   };
 
   const handleEditar = (id: string) => {
     if (!textoEdicion.trim()) return;
-    editar(id, textoEdicion.trim());
+    editar(id, textoEdicion.trim(), asignacionEdicion);
     setEditandoId(null);
   };
 
   const pendientes = tareas.filter((t) => !t.completada);
   const completadas = tareas.filter((t) => t.completada);
+  const misAsignadas = pendientes.filter((t) => miNombre && t.asignadaA === miNombre);
 
   return (
     <section>
@@ -48,6 +89,13 @@ export function TareasSection() {
         <span className="text-xl">✅</span>
         <h2 className="text-lg font-semibold text-gray-800">Tareas pendientes</h2>
       </div>
+
+      {misAsignadas.length > 0 && (
+        <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 mb-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium">
+          <Bell size={16} className="flex-shrink-0" />
+          Tienes {misAsignadas.length === 1 ? "1 tarea asignada" : `${misAsignadas.length} tareas asignadas`} a ti
+        </div>
+      )}
 
       <div className="flex gap-2 mb-3">
         <input
@@ -62,6 +110,13 @@ export function TareasSection() {
           <Plus size={18} />
         </Button>
       </div>
+
+      {miembros.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs text-gray-400 mb-1.5">Asignar a:</p>
+          <SelectorAsignacion miembros={miembros} valor={asignacionNueva} onCambiar={setAsignacionNueva} />
+        </div>
+      )}
 
       {tareas.length === 0 ? (
         <Card>
@@ -104,18 +159,23 @@ export function TareasSection() {
 
                 <div className="flex-1 min-w-0">
                   {editandoId === tarea.id ? (
-                    <input
-                      type="text"
-                      value={textoEdicion}
-                      onChange={(e) => setTextoEdicion(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleEditar(tarea.id);
-                        if (e.key === "Escape") setEditandoId(null);
-                      }}
-                      onBlur={() => handleEditar(tarea.id)}
-                      autoFocus
-                      className="w-full px-2 py-1 rounded-lg border border-sage-300 focus:outline-none focus:ring-2 focus:ring-sage-300"
-                    />
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={textoEdicion}
+                        onChange={(e) => setTextoEdicion(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleEditar(tarea.id);
+                          if (e.key === "Escape") setEditandoId(null);
+                        }}
+                        onBlur={() => handleEditar(tarea.id)}
+                        autoFocus
+                        className="w-full px-2 py-1 rounded-lg border border-sage-300 focus:outline-none focus:ring-2 focus:ring-sage-300"
+                      />
+                      {miembros.length > 0 && (
+                        <SelectorAsignacion miembros={miembros} valor={asignacionEdicion} onCambiar={setAsignacionEdicion} />
+                      )}
+                    </div>
                   ) : (
                     <>
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -127,7 +187,18 @@ export function TareasSection() {
                         <p className={cn("text-gray-800", tarea.completada && "line-through")}>
                           {tarea.texto}
                         </p>
+                        {!tarea.completada && tarea.asignadaA && (
+                          <span className={cn(
+                            "text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0",
+                            tarea.asignadaA === miNombre ? "text-sky-700 bg-sky-100" : "text-gray-500 bg-gray-100"
+                          )}>
+                            Para: {tarea.asignadaA}
+                          </span>
+                        )}
                       </div>
+                      {tarea.creadaPor && tarea.creadaPor !== miNombre && (
+                        <p className="text-[11px] text-gray-400 mt-0.5">Pedido por {tarea.creadaPor}</p>
+                      )}
                       {tarea.completada && tarea.completadaPor && (
                         <p className="text-xs text-sage-500 mt-0.5">✓ {tarea.completadaPor}</p>
                       )}
@@ -152,13 +223,23 @@ export function TareasSection() {
                         <AlertTriangle size={15} />
                       </button>
                       <button
-                        onClick={() => { setEditandoId(tarea.id); setTextoEdicion(tarea.texto); }}
+                        onClick={() => { setEditandoId(tarea.id); setTextoEdicion(tarea.texto); setAsignacionEdicion(tarea.asignadaA ?? ""); }}
                         className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-sage-500 transition-colors"
                         aria-label="Editar"
                       >
                         <Pencil size={15} />
                       </button>
                     </>
+                  )}
+                  {tarea.completada && (
+                    <button
+                      onClick={() => archivar(tarea.id)}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-300 hover:text-amber-500 transition-colors"
+                      aria-label="Ya la he visto, quitar de aquí"
+                      title="Ya la he visto, quitar de aquí"
+                    >
+                      <ArchiveX size={15} />
+                    </button>
                   )}
                   <button
                     onClick={() => eliminar(tarea.id)}

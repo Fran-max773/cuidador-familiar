@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useTareas } from "@/hooks/useTareas";
+import { getSesion } from "@/hooks/useGrupo";
 
 const items = [
   {
@@ -50,6 +52,9 @@ const items = [
 export function BottomNav() {
   const pathname = usePathname();
   const [perfilIncompleto, setPerfilIncompleto] = useState(false);
+  const { tareas } = useTareas();
+  const miNombre = getSesion()?.miNombre ?? "";
+  const tareasAsignadas = tareas.filter((t) => !t.completada && miNombre && t.asignadaA === miNombre).length;
 
   useEffect(() => {
     try {
@@ -66,6 +71,7 @@ export function BottomNav() {
         {items.map(({ href, label, emoji, activeText, inactiveText, activeBg }) => {
           const activo = pathname === href;
           const esPerfil = href === "/perfil";
+          const esHoy = href === "/";
           return (
             <Link
               key={href}
@@ -82,6 +88,9 @@ export function BottomNav() {
                 {emoji}
                 {esPerfil && perfilIncompleto && (
                   <span className="absolute top-0 right-0 w-3 h-3 bg-amber-400 rounded-full border-2 border-white" />
+                )}
+                {esHoy && tareasAsignadas > 0 && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-sky-500 rounded-full border-2 border-white" />
                 )}
               </span>
               <span className={cn("text-[10px]", activo ? "font-semibold" : "font-normal")}>

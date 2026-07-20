@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
@@ -21,13 +21,20 @@ function fromDb(r: any): Tarea {
     prioridad: r.prioridad ?? "normal",
     completadaPor: r.completada_por ?? "",
     asignadaA: r.asignada_a ?? "",
+    creadaPor: r.creada_por ?? "",
   };
 }
 
 export function useTareas() {
+  // Cada instancia del hook (p.ej. TareasSection y BottomNav a la vez) necesita
+  // su propio nombre de canal: Supabase reutiliza el canal si el nombre coincide,
+  // y añadir un segundo .on() a un canal ya suscrito lanza un error.
+  const instanceId = useId();
   const [sesion, setSesion] = useState(getSesion);
   const [tareasLocal, setTareasLocal] = useLocalStorage<Tarea[]>("cf_tareas", []);
   const [tareasRemoto, setTareasRemoto] = useState<Tarea[]>([]);
+  // Tareas completadas que este dispositivo ha decidido dejar de ver hoy (no afecta a los demás)
+  const [ocultas, setOcultas] = useLocalStorage<string[]>("cf_tareas_ocultas", []);
 
   useEffect(() => { setSesion(getSesion()); }, []);
 
@@ -46,7 +53,7 @@ export function useTareas() {
     cargar();
 
     const channel = supabase
-      .channel(`tareas-${sesion.grupoId}`)
+      .channel(`tareas-${sesion.grupoId}-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tareas",
         filter: `grupo_id=eq.${sesion.grupoId}` },
         (payload) => {
@@ -63,28 +70,32 @@ export function useTareas() {
     return () => { supabase.removeChannel(channel); };
   }, [sesion?.grupoId]);
 
-  const tareas = sesion
-    ? tareasRemoto.filter((t) => t.fecha === HOY)
-    : tareasLocal.filter((t) => t.fecha === HOY);
+  const tareas = (sesion ? tareasRemoto : tareasLocal)
+    .filter((t) => t.fecha === HOY && !ocultas.includes(t.id));
 
   const tareasRecientes = sesion
     ? tareasRemoto
     : tareasLocal.filter((t) => t.fecha >= hace3diasStr() && t.fecha <= HOY);
 
-  const agregar = async (texto: string, prioridad: Tarea["prioridad"] = "normal") => {
+  const agregar = async (texto: string, prioridad: Tarea["prioridad"] = "normal", asignadaA = "") => {
     if (!sesion) {
       setTareasLocal((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), texto, completada: false, fecha: HOY, prioridad },
+        { id: crypto.randomUUID(), texto, completada: false, fecha: HOY, prioridad, asignadaA },
       ]);
       return;
     }
     const { data, error } = await supabase.from("tareas").insert({
       grupo_id: sesion.grupoId, texto, completada: false,
-      fecha: HOY, prioridad, completada_por: "", asignada_a: "",
+      fecha: HOY, prioridad, completada_por: "", asignada_a: asignadaA, creada_por: sesion.miNombre,
     }).select().single();
     if (error) { console.error("Error al añadir tarea:", error); return; }
     setTareasRemoto((prev) => prev.some((t) => t.id === data.id) ? prev : [...prev, fromDb(data)]);
+  };
+
+  // Deja de mostrar una tarea completada en "Hoy" solo para este dispositivo
+  const archivar = (id: string) => {
+    setOcultas((prev) => prev.includes(id) ? prev : [...prev, id]);
   };
 
   const toggleCompletar = async (id: string) => {
@@ -106,13 +117,13 @@ export function useTareas() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  const editar = async (id: string, texto: string) => {
+  const editar = async (id: string, texto: string, asignadaA = "") => {
     if (!sesion) {
-      setTareasLocal((prev) => prev.map((t) => t.id === id ? { ...t, texto } : t));
+      setTareasLocal((prev) => prev.map((t) => t.id === id ? { ...t, texto, asignadaA } : t));
       return;
     }
-    setTareasRemoto((p) => p.map((t) => t.id === id ? { ...t, texto } : t));
-    await supabase.from("tareas").update({ texto })
+    setTareasRemoto((p) => p.map((t) => t.id === id ? { ...t, texto, asignadaA } : t));
+    await supabase.from("tareas").update({ texto, asignada_a: asignadaA })
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
@@ -143,5 +154,5 @@ export function useTareas() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad };
+  return { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad, archivar };
 }

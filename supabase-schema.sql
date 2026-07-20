@@ -64,6 +64,9 @@ CREATE TABLE citas (
 -- Migración: añadir columna realizada si la tabla ya existe
 ALTER TABLE citas ADD COLUMN IF NOT EXISTS realizada boolean DEFAULT false;
 
+-- Migración: quién solicitó la tarea
+ALTER TABLE tareas ADD COLUMN IF NOT EXISTS creada_por text DEFAULT '';
+
 -- Permitir acceso público (la seguridad la da el código del grupo)
 ALTER TABLE grupos     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE miembros   ENABLE ROW LEVEL SECURITY;
