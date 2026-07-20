@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { FileText, Heart } from "lucide-react";
+import { FileText, HeartHandshake } from "lucide-react";
 import { MedicacionSection } from "@/components/hoy/MedicacionSection";
 import { TareasSection } from "@/components/hoy/TareasSection";
 import { CitasSection } from "@/components/hoy/CitasSection";
@@ -33,7 +33,7 @@ export default function HoyPage() {
       {/* Hero — 100vw real con el truco CSS para salir del contenedor */}
       <div
         style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)" }}
-        className="-mt-6 px-8 pt-12 pb-16 mb-8 bg-gradient-to-b from-sage-700 to-sage-500 text-center relative overflow-hidden rounded-b-[2.5rem]"
+        className="-mt-6 px-8 pt-12 pb-16 mb-8 bg-gradient-to-b from-warm-600 to-warm-300 text-center relative overflow-hidden rounded-b-[2.5rem]"
       >
         {/* Círculos decorativos */}
         <div className="absolute -top-16 -left-16 w-64 h-64 bg-white/5 rounded-full" />
@@ -43,12 +43,12 @@ export default function HoyPage() {
         <div className="relative z-10">
           <div className="w-18 h-18 mx-auto mb-5 bg-white/20 rounded-2xl flex items-center justify-center"
                style={{ width: "4.5rem", height: "4.5rem" }}>
-            <Heart size={32} fill="white" className="text-white" />
+            <HeartHandshake size={32} strokeWidth={2.25} className="text-white" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
             Cuidador Familiar
           </h1>
-          <p className="text-sage-100 text-base leading-relaxed max-w-[280px] mx-auto">
+          <p className="text-warm-100 text-base leading-relaxed max-w-[280px] mx-auto">
             Cuida a quien quieres sin olvidarte de cuidarte a ti también.
           </p>
           <div className="mt-5 inline-block bg-white/20 rounded-full px-5 py-2">

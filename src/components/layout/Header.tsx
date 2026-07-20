@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Heart, ChevronLeft, HelpCircle } from "lucide-react";
+import { HeartHandshake, ChevronLeft, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const rutas: Record<string, string> = {
@@ -24,14 +24,14 @@ export function Header() {
     <header className={cn(
       "sticky top-0 z-40 safe-area-pt print:hidden",
       esHome
-        ? "bg-gradient-to-r from-sage-700 to-sage-500"
-        : "bg-gradient-to-r from-sky-500 to-sky-400 shadow-sm"
+        ? "bg-gradient-to-r from-warm-600 to-warm-300"
+        : "bg-gradient-to-r from-warm-600 to-warm-300 shadow-sm"
     )}>
       <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-2">
         {esHome ? (
           <>
             <Link href="/" className="flex items-center gap-2 text-white/90 flex-shrink-0">
-              <Heart size={22} fill="currentColor" />
+              <HeartHandshake size={24} strokeWidth={2.25} />
             </Link>
             <Link
               href="/guia"

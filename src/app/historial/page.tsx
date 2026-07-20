@@ -498,6 +498,18 @@ export default function HistorialPage() {
 
   const { desde, hasta } = useMemo(() => getRango(PERIODOS[periodoIdx].meses), [periodoIdx]);
 
+  // Al elegir un período, aplica también el mismo rango a la vista calendario
+  // (calDesde/calHasta), que si no queda descoordinada y siempre muestra 12 meses.
+  const seleccionarPeriodo = (i: number) => {
+    setPeriodo(i);
+    const meses = PERIODOS[i].meses;
+    const hoy = new Date();
+    const inicio = new Date();
+    inicio.setMonth(inicio.getMonth() - (meses - 1));
+    setCalDesde(`${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, "0")}`);
+    setCalHasta(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`);
+  };
+
   // Rango efectivo: para calendario usa calDesde/calHasta (incluye futuro)
   const desdeEfectivo = vistaCalendario ? `${calDesde}-01` : desde;
   const hastaEfectivo = useMemo(() => {
@@ -601,7 +613,7 @@ export default function HistorialPage() {
               {PERIODOS.map((p, i) => (
                 <button
                   key={i}
-                  onClick={() => setPeriodo(i)}
+                  onClick={() => seleccionarPeriodo(i)}
                   className={cn(
                     "px-4 py-2 rounded-xl text-sm font-medium border transition-all",
                     periodoIdx === i
@@ -627,8 +639,8 @@ export default function HistorialPage() {
                 key={id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-sm font-semibold transition-all",
-                  tab === id ? color : colorInactivo
+                  "flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-sm font-semibold transition-all border",
+                  tab === id ? cn(color, "border-gray-900") : cn(colorInactivo, "border-transparent")
                 )}
               >
                 <Icon size={15} />
