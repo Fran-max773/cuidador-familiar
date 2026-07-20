@@ -39,8 +39,8 @@ src/
 │       └── consulta-situacion/route.ts # POST → OpenAI (consulta puntual + voz)
 ├── components/
 │   ├── layout/
-│   │   ├── Header.tsx                  # Cabecera: ← atrás en sub-páginas, "? Ayuda" en home
-│   │   ├── BottomNav.tsx               # Nav inferior 5 pestañas + badge perfil (emojis)
+│   │   ├── Header.tsx                  # Cabecera cálida (warm-600→warm-300); en home: icono HeartHandshake + enlaces "Ebook" (PDF directo) y "Ayuda"
+│   │   ├── BottomNav.tsx               # Nav inferior 5 pestañas + badges (perfil incompleto, tareas asignadas a ti) — emojis
 │   │   └── SosButton.tsx               # Botón flotante rojo SOS (oculto en /emergencias)
 │   ├── hoy/
 │   │   ├── MedicacionSection.tsx
@@ -61,9 +61,10 @@ src/
 │       └── Modal.tsx
 ├── hooks/
 │   ├── useMedicacion.ts                # Supabase + localStorage; expone medicaciones (hoy) y medicacionesRecientes (60 días)
-│   ├── useTareas.ts                    # Supabase + localStorage; expone tareas (hoy) y tareasRecientes (3 días)
+│   ├── useTareas.ts                    # Supabase + localStorage; expone tareas (hoy) y tareasRecientes (3 días). Asignación (asignadaA), quién la pidió (creadaPor) y archivado individual (ocultas, localStorage cf_tareas_ocultas)
 │   ├── useCitas.ts                     # Supabase + localStorage; últimos 7 días + futuro
 │   ├── useGrupo.ts                     # Gestión de sesión grupal
+│   ├── useMiembros.ts                  # Lista de nombres de miembros del grupo (para asignar tareas)
 │   ├── useBienestar.ts                 # Check-in emocional, solo localStorage
 │   └── useLocalStorage.ts              # Helper genérico
 ├── data/
@@ -129,6 +130,8 @@ Supabase sin auth (`persistSession: false`). El grupo se identifica por `grupo_i
 
 **Formato clave de toma:** `completadasEn: string[]` → cada elemento es `"YYYY-MM-DD_HH:mm"`.
 
+**Tabla `tareas`:** además de lo básico tiene `asignada_a` (persona del grupo, o vacío = libre), `completada_por` (quién la marcó hecha) y `creada_por` (quién la pidió — columna añadida vía migración manual en el SQL Editor de Supabase, ver `supabase-schema.sql`).
+
 ---
 
 ## Patrones críticos
@@ -153,6 +156,12 @@ Usa `scrollAreaRef` + `el.scrollTop = el.scrollHeight` sobre el contenedor con o
 ### BottomNav
 Usa emojis (no lucide-react). La página `/guia` replica este estilo en sus tarjetas de sección.
 
+### Canales de Supabase Realtime — nombre único por instancia de hook
+Si el mismo hook (p.ej. `useTareas`) se monta dos veces a la vez (ej. `TareasSection` en Hoy + `BottomNav` en el layout global), **no** uses `channel-${grupoId}` a secas: Supabase reutiliza el canal si el nombre coincide, y añadir un segundo `.on()` a un canal ya suscrito lanza un error real que rompe la página. Incluir un `useId()` de React en el nombre del canal (ya hecho en `useTareas.ts`).
+
+### Paleta `warm` incompleta — cuidado con los degradados
+`tailwind.config.ts` solo define `warm.50/100/200/300/500/600` (**no existe `warm-400`**). Usar una clase con un tono no definido no da error visible: Tailwind simplemente no genera la utilidad y el degradado se desvanece a transparente. Si se usa `warm` en un `bg-gradient-to-*`, verificar visualmente el resultado.
+
 ---
 
 ## Comandos
@@ -166,11 +175,15 @@ git push         # despliega automáticamente a Vercel
 
 ---
 
-## Última sesión
+## Última sesión (2026-07-20, sesión larga)
 
-- Fix bienestar: preguntas positivas usaban escala directa en lugar de `6 - valor` (`useBienestar.ts`)
-- Página `/guia`: emojis en tarjetas de sección, texto ampliado para legibilidad, tarjeta de Perfil añadida
-- Historial: rango de fechas activo visible bajo los botones de período
+- **Bug de guardado en producción**: el proyecto de Supabase estaba pausado (free tier, inactividad) → DNS no resolvía → nada se guardaba en modo grupo. Se reactivó desde el dashboard de Supabase. De paso se corrigió que `agregar()` en `useMedicacion.ts`/`useCitas.ts`/`useTareas.ts` no actualizaba el estado local (dependía solo de Realtime, poco fiable en móvil) — ahora usan `.select().single()` y actualizan al instante.
+- **Asignación de tareas en grupo**: nuevo hook `useMiembros.ts`; `TareasSection.tsx` permite asignar cada tarea a una persona del grupo o dejarla "Libre", con aviso (banner + punto en pestaña Hoy) para quien tiene tareas asignadas.
+- **Quién pide/completa/archiva una tarea**: campo `creadaPor` (columna `creada_por`, migración manual ya aplicada), chip sutil "Pedido por X" (oculto si eres tú), y botón para archivar individualmente una tarea completada (`cf_tareas_ocultas` en localStorage, solo afecta a tu dispositivo).
+- **Favicon + identidad visual cálida**: `src/app/icon.png` + `apple-icon.png` + `public/icon-*.png` (corazón blanco sobre degradado ámbar). `Header.tsx` y el hero de `page.tsx` pasaron de sage/sky a degradado `warm-600→warm-300`, icono `HeartHandshake`, y el hero ahora usa una foto real (`public/hero-cuidado.jpg`, comprimida a ~155KB) con velo oscuro para legibilidad.
+- **Historial**: pestaña activa (Tareas/Medicación/Citas) con borde negro fino; corregido que los botones de período (1/3/6/12 meses) no afectaban a la vista Calendario (usaba un rango `calDesde`/`calHasta` independiente, siempre 12 meses) — ahora ambas vistas quedan coordinadas.
+- **Ebook**: enlace "Ebook" en el header (junto a "Ayuda", solo en Hoy) → `public/ebook-cuidador-familiar.pdf`, abre directo en pestaña nueva. El PDF se optimizó de 8.6MB a 5.1MB (dos imágenes se guardaban sin comprimir) y se le añadió una página final (102 en total) con enlaces reales a la app y a un artículo en tograndparents.com.
+- **Promoción cruzada con tograndparents.com** (web WordPress externa del usuario, no forma parte de este repo): artículo, bloque en la home y enlace en el PDF — detalles completos en la memoria del proyecto (`tograndparents_promotion_project` / `tograndparents_wordpress_access`), no en este archivo.
 
 > Historial completo de cambios: `git log --oneline`
 
