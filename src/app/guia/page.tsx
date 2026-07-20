@@ -53,6 +53,7 @@ const secciones = [
       "Toca ⚠ para marcar una tarea como urgente",
       "Puedes corregir tareas no marcadas de días anteriores",
       "En grupos familiares, las tareas pueden asignarse a personas concretas",
+      "Verás quién pidió cada tarea y quién la completó; archívala cuando ya la hayas visto",
     ],
   },
   {
@@ -128,6 +129,7 @@ const secciones = [
       "Crea un grupo y comparte el código con tus familiares",
       "Los cambios de un miembro se reflejan al instante en todos los móviles",
       "Las tareas pueden asignarse a personas específicas del grupo",
+      "Si te asignan una tarea, verás un aviso y un punto en la pestaña 'Hoy'",
     ],
   },
   {
