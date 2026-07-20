@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { HeartHandshake, ChevronLeft, HelpCircle } from "lucide-react";
+import { HeartHandshake, ChevronLeft, HelpCircle, BookMarked } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const rutas: Record<string, string> = {
@@ -33,9 +33,19 @@ export function Header() {
             <Link href="/" className="flex items-center gap-2 text-white/90 flex-shrink-0">
               <HeartHandshake size={24} strokeWidth={2.25} />
             </Link>
+            <a
+              href="/ebook-cuidador-familiar.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
+              aria-label="Ebook: Manual práctico del cuidador familiar"
+            >
+              <BookMarked size={18} />
+              <span className="text-xs font-medium">Ebook</span>
+            </a>
             <Link
               href="/guia"
-              className="ml-auto flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
               aria-label="Ayuda"
             >
               <HelpCircle size={18} />
