@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { FileText, HeartHandshake } from "lucide-react";
 import { MedicacionSection } from "@/components/hoy/MedicacionSection";
 import { TareasSection } from "@/components/hoy/TareasSection";
@@ -33,25 +34,32 @@ export default function HoyPage() {
       {/* Hero — 100vw real con el truco CSS para salir del contenedor */}
       <div
         style={{ width: "100vw", marginLeft: "calc(-50vw + 50%)" }}
-        className="-mt-6 px-8 pt-12 pb-16 mb-8 bg-gradient-to-b from-warm-600 to-warm-300 text-center relative overflow-hidden rounded-b-[2.5rem]"
+        className="-mt-6 mb-8 relative overflow-hidden rounded-b-[2.5rem]"
       >
-        {/* Círculos decorativos */}
-        <div className="absolute -top-16 -left-16 w-64 h-64 bg-white/5 rounded-full" />
-        <div className="absolute -bottom-20 -right-16 w-72 h-72 bg-white/5 rounded-full" />
-        <div className="absolute top-8 right-8 w-32 h-32 bg-white/5 rounded-full" />
+        <Image
+          src="/hero-cuidado.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+        {/* Velo cálido/oscuro para que el texto sea legible sobre la foto */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/55" />
+        <div className="absolute inset-0 bg-warm-600/25" />
 
-        <div className="relative z-10">
-          <div className="w-18 h-18 mx-auto mb-5 bg-white/20 rounded-2xl flex items-center justify-center"
+        <div className="relative z-10 px-8 pt-12 pb-16 text-center">
+          <div className="w-18 h-18 mx-auto mb-5 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
                style={{ width: "4.5rem", height: "4.5rem" }}>
             <HeartHandshake size={32} strokeWidth={2.25} className="text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">
+          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight drop-shadow-sm">
             Cuidador Familiar
           </h1>
-          <p className="text-warm-100 text-base leading-relaxed max-w-[280px] mx-auto">
+          <p className="text-white/90 text-base leading-relaxed max-w-[280px] mx-auto drop-shadow-sm">
             Cuida a quien quieres sin olvidarte de cuidarte a ti también.
           </p>
-          <div className="mt-5 inline-block bg-white/20 rounded-full px-5 py-2">
+          <div className="mt-5 inline-block bg-white/20 backdrop-blur-sm rounded-full px-5 py-2">
             <p className="text-white/90 text-sm font-medium capitalize">{fechaTexto}</p>
           </div>
         </div>
