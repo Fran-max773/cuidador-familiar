@@ -211,12 +211,12 @@ Fran quiere crear una cuenta de Instagram (aún no creada — requiere que él l
 
 **Hueco de contenido identificado**: la categoría "Dinero y Finanzas" de tograndparents.com ya tiene pensiones/declaración de la renta para jubilados, pero nada específico sobre ayudas/derechos de quien cuida a un familiar — es el punto intermedio sin cubrir entre el directorio de "Centros de día" (para quien delega el cuidado) y el contenido de la app (para quien cuida en casa).
 
-**Plan acordado con Fran** — **EN MARCHA desde el 2026-09-02, detalle completo en `../Tograndparents/CLAUDE.md`** (sección "Reforzar contenido de 'cuidador familiar' + Instagram", no duplicado aquí para no desincronizar):
-1. ✅ Fran creó la cuenta de Instagram (`@soycuidadorfamiliar`) — Claude no puede crear cuentas (regla fija), pero configuró todo lo demás (foto, bio, enlace, cuenta profesional) una vez creada.
-2. ⏳ 2-3 artículos nuevos en tograndparents.com sobre ayudas/derechos/deducciones del cuidador familiar: 1 de 3 publicado en vivo, 2 con guión aprobado y datos ya verificados pendientes de redactar.
+**Plan acordado con Fran** — **avanzado, detalle completo en `../Tograndparents/CLAUDE.md`** (sección "Reforzar contenido de 'cuidador familiar' + Instagram", no duplicado aquí para no desincronizar). Estado según la última actualización de ese archivo (sesión 2026-09-11):
+1. ✅ Cuenta de Instagram creada y configurada (`@soycuidadorfamiliar`) — Claude no puede crear cuentas (regla fija), Fran la registró y Claude configuró el resto (foto, bio, enlace, cuenta profesional).
+2. ✅ Los 3 artículos de tograndparents.com sobre ayudas/derechos/deducciones del cuidador publicados, enlazados entre sí y con la app (CTA con UTM `utm_source=tograndparents&utm_medium=blog&utm_campaign=<slug>`). Frente cerrado.
 3. ✅ 18 ideas de post extraídas del ebook y aprobadas por Fran, repartidas en los 3 pilares (libro / nicho legal-fiscal / la app).
-4. ⏳ Post 1 del carrusel completado y publicado como Artifact de diseño (dirección "foto + cita", validada comparando cuentas reales de referencia) — enlazar Instagram ↔ tograndparents.com queda pendiente de aplicar en el resto de los posts.
-5. Cadencia acordada: preparar varios posts de golpe en sesión, publicar después 2-3 veces por semana.
+4. ✅ Pipeline de publicación automatizado (Telegram + scripts + Graph API de Instagram) construido y probado de principio a fin; **8 carruseles publicados** en la cuenta a fecha 2026-09-11. Enlace Instagram ↔ tograndparents.com ya añadido (pie de página del sitio + 5 artículos afines).
+5. ⏳ Automatización "sin depender del PC encendido" (vía Make, con Instagram publicando sin sesión activa) bloqueada por un bug conocido y sin resolver de la API de Instagram al pedir el token de larga duración — de momento cada tanda sigue publicándose corriendo los scripts en una sesión activa. Cadencia acordada: lunes/miércoles/viernes.
 
 ---
 
