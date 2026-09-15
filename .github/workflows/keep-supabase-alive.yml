@@ -1,0 +1,16 @@
+name: Keep Supabase project alive
+
+on:
+  schedule:
+    # Every 3 days at 06:00 UTC
+    - cron: "0 6 */3 * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase project (auth health check, no credentials needed)
+        run: |
+          curl -sS -o /dev/null -w "auth/health: %{http_code}\n" https://geqxighknaxsastdqepk.supabase.co/auth/v1/health
+          curl -sS -o /dev/null -w "rest root: %{http_code}\n" https://geqxighknaxsastdqepk.supabase.co/rest/v1/
