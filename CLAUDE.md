@@ -187,6 +187,37 @@ git push         # despliega automáticamente a Vercel
 
 > Historial completo de cambios: `git log --oneline`
 
+## Sesión 2026-08-18 (desde el proyecto Tograndparents)
+
+- **Supabase pausado de nuevo** (mismo problema que el 2026-07-20, free tier por inactividad) — Fran lo detectó ella misma en el dashboard de Supabase (`https://supabase.com/dashboard/project/geqxighknaxsastdqepk`) y se reactivó con el botón "Resume project". **Ojo**: en la interfaz en español ese botón aparece mal traducido como **"Proyecto de currículum"** (traducción literal errónea de "Resume project", no tiene nada que ver con un CV) — fácil de pasarlo por alto. El proyecto se puede reanudar desde el dashboard hasta el 21 de septiembre de 2027; después de esa fecha ya no sería recuperable (aunque los datos seguirían disponibles para descargar).
+- Como esto ya es la segunda vez, si vuelve a pasar merece la pena valorar con Fran o bien entrar en la app cuidador-familiar.vercel.app de vez en cuando (evita la pausa por inactividad) o actualizar a Supabase Pro.
+- **Confirmado que las otras 2 apps personales de Fran no usan Supabase** (por si alguna vez se confunden): `Planificador_menus` no tiene ninguna variable de entorno configurada en Vercel; `que-plantar-y-cuando` usa OpenAI + Redis/Upstash (KV). Solo `Cuidador_Familiar` depende de Supabase, así que es la única de las tres con este riesgo de pausa.
+
+---
+
+## Sesión 2026-09-01 (desde el proyecto Adsense) — fin del riesgo de pausa de Supabase + arranque de plan de marketing de contenidos
+
+**Contexto**: esta sesión empezó investigando un gasto sorpresa de OpenAI (ver `../Adsense/CLAUDE.md`), y de ahí Fran preguntó por el estado de Supabase (había recibido 2 avisos de pausa por inactividad de `ant.wilson@supabase.com`, 10 jul y 16 ago).
+
+- **Proyecto confirmado sano** (`Fran-max773's Project`, org `cuidador-familiar`, `https://supabase.com/dashboard/project/geqxighknaxsastdqepk`) — status "Healthy" al comprobarlo, 0 total requests (tráfico real muy bajo, por eso se pausa tan fácil).
+- **Solución permanente al problema recurrente** (esto ya había pasado dos veces, 20-jul y 18-ago, ver arriba): se creó un **GitHub Action programado** en el repo `Fran-max773/cuidador-familiar` → `.github/workflows/keep-supabase-alive.yml`. Corre solo cada 3 días (`0 6 */3 * *`, UTC) y hace un `curl` sin credenciales a `https://geqxighknaxsastdqepk.supabase.co/auth/v1/health` y `/rest/v1/` — el 401 es esperado y no importa, lo que cuenta es que la petición llega al proyecto y resetea el contador de inactividad. Verificado con una ejecución manual (`gh workflow run`) que respondió 401/401, confirmando que sí llega tráfico real. **Con esto no debería volver a pausarse sin que nadie se entere** — ya no hace falta la solución manual de "entrar de vez en cuando a la app" ni plantearse pasar a Supabase Pro solo por esto.
+- Repo por defecto usa rama `master` (no `main`) — importante si se vuelve a tocar vía API de contenidos de GitHub (`gh api -X PUT repos/.../contents/...` necesita `-X PUT`, con solo `-f` por defecto hace POST y da 404 engañoso).
+
+### Nueva iniciativa: dar visibilidad a la app — Instagram + reforzar tograndparents.com
+
+Fran quiere crear una cuenta de Instagram (aún no creada — requiere que él la cree, Claude no puede registrar cuentas) para publicar contenido de cuidado familiar, en parte basado en `public/ebook-cuidador-familiar.pdf` y en parte contenido más amplio del nicho. En vez de montar un blog nuevo, se apoya en **tograndparents.com** (ya tiene tráfico, categoría "Familia y Relaciones", y un artículo insignia: *"Cómo cuidar a un padre con deterioro cognitivo sin acabar agotado: guía práctica para cuidadores familiares"*, más un CTA de la app ya en la home).
+
+**Investigación de keywords hecha en Ubersuggest** (cuenta de Fran, proyecto trackeado ahí sigue siendo mygardenlive.com — para tograndparents.com se usó la herramienta suelta "Keyword Ideas" sin necesitar añadirlo como proyecto): volumen bajo en España para el nicho puro "cuidador familiar" (mejores: "paga cuidador familiar" 40/mes, "ayuda cuidador familiar" 40/mes), pero con dificultad SEO baja (KD 5-9) en ángulos legales/fiscales sin cubrir todavía en el sitio: *"cuánto se cobra por cuidar a un familiar dependiente"*, *"derechos cuidador familiar ley dependencia"*, *"deducciones de Hacienda por cuidar a un familiar mayor"*. Ojo: Ubersuggest mezcla ruido de Brasil ("bolsa cuidador familiar...", programa social brasileño, filtrar al analizar).
+
+**Hueco de contenido identificado**: la categoría "Dinero y Finanzas" de tograndparents.com ya tiene pensiones/declaración de la renta para jubilados, pero nada específico sobre ayudas/derechos de quien cuida a un familiar — es el punto intermedio sin cubrir entre el directorio de "Centros de día" (para quien delega el cuidado) y el contenido de la app (para quien cuida en casa).
+
+**Plan acordado con Fran** — **EN MARCHA desde el 2026-09-02, detalle completo en `../Tograndparents/CLAUDE.md`** (sección "Reforzar contenido de 'cuidador familiar' + Instagram", no duplicado aquí para no desincronizar):
+1. ✅ Fran creó la cuenta de Instagram (`@soycuidadorfamiliar`) — Claude no puede crear cuentas (regla fija), pero configuró todo lo demás (foto, bio, enlace, cuenta profesional) una vez creada.
+2. ⏳ 2-3 artículos nuevos en tograndparents.com sobre ayudas/derechos/deducciones del cuidador familiar: 1 de 3 publicado en vivo, 2 con guión aprobado y datos ya verificados pendientes de redactar.
+3. ✅ 18 ideas de post extraídas del ebook y aprobadas por Fran, repartidas en los 3 pilares (libro / nicho legal-fiscal / la app).
+4. ⏳ Post 1 del carrusel completado y publicado como Artifact de diseño (dirección "foto + cita", validada comparando cuentas reales de referencia) — enlazar Instagram ↔ tograndparents.com queda pendiente de aplicar en el resto de los posts.
+5. Cadencia acordada: preparar varios posts de golpe en sesión, publicar después 2-3 veces por semana.
+
 ---
 
 ## Tareas pendientes
