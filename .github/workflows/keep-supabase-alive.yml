@@ -1,16 +1,28 @@
 name: Keep Supabase project alive
 
+# Supabase pausa los proyectos gratuitos tras 7 días sin actividad en la BASE DE DATOS.
+# Tocar /auth/v1/health o /rest/v1/ sin clave (la versión anterior de este workflow) NO cuenta:
+# el proyecto se pausó igualmente el 2026-09-25. Hace falta una consulta real a una tabla.
+
 on:
   schedule:
-    # Every 3 days at 06:00 UTC
-    - cron: "0 6 */3 * *"
+    # Todos los días a las 06:00 UTC
+    - cron: "0 6 * * *"
   workflow_dispatch: {}
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase project (auth health check, no credentials needed)
+      - name: Consulta real a la base de datos (lee 1 fila de grupos con la clave pública)
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          curl -sS -o /dev/null -w "auth/health: %{http_code}\n" https://geqxighknaxsastdqepk.supabase.co/auth/v1/health
-          curl -sS -o /dev/null -w "rest root: %{http_code}\n" https://geqxighknaxsastdqepk.supabase.co/rest/v1/
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --retry 3 --retry-delay 20 \
+            "https://geqxighknaxsastdqepk.supabase.co/rest/v1/grupos?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "grupos: $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase no responde con 200 ($code). Si el proyecto está pausado, reactívalo en https://supabase.com/dashboard/project/geqxighknaxsastdqepk (botón 'Resume project', en español 'Proyecto de currículum')."
+            exit 1
+          fi
