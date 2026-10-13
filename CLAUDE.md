@@ -33,6 +33,7 @@ src/
 │   ├── bienestar/page.tsx              # Check-in emocional del cuidador
 │   ├── emergencias/page.tsx            # Contactos de emergencia + SOS
 │   ├── grupo/page.tsx                  # Sincronización familiar (Supabase)
+│   ├── mediciones/page.tsx             # Mediciones: filtros persona/tipo, gráfico de evolución, historial con borrado confirmado
 │   └── api/
 │       ├── chat/route.ts               # POST → OpenAI (asistente general)
 │       ├── chat-guia/route.ts          # POST → OpenAI (ayuda sobre la app)
@@ -46,6 +47,7 @@ src/
 │   │   ├── MedicacionSection.tsx
 │   │   ├── TareasSection.tsx
 │   │   ├── CitasSection.tsx
+│   │   ├── MedicionesSection.tsx       # Últimas 4 mediciones + "Añadir" (bloque rose-50, id="mediciones")
 │   │   ├── MensajeDiario.tsx
 │   │   └── TarjetaGuia.tsx             # Tarjeta "¿Primera vez?" (sesión, no persistida)
 │   ├── asistente/
@@ -53,6 +55,7 @@ src/
 │   ├── bienestar/
 │   │   ├── CheckinDiario.tsx
 │   │   └── GraficoSemanal.tsx
+│   ├── mediciones/                     # ModalMedicion (formulario), FilaMedicion, GraficoMedicion (recharts), Chip
 │   ├── que-hago-si/
 │   │   └── OtraSituacion.tsx
 │   └── ui/
@@ -63,6 +66,7 @@ src/
 │   ├── useMedicacion.ts                # Supabase + localStorage; expone medicaciones (hoy) y medicacionesRecientes (60 días)
 │   ├── useTareas.ts                    # Supabase + localStorage; expone tareas (hoy) y tareasRecientes (3 días). Asignación (asignadaA), quién la pidió (creadaPor) y archivado individual (ocultas, localStorage cf_tareas_ocultas)
 │   ├── useCitas.ts                     # Supabase + localStorage; últimos 7 días + futuro
+│   ├── useMediciones.ts                # Supabase + localStorage (cf_mediciones); todas las mediciones, recientes primero
 │   ├── useGrupo.ts                     # Gestión de sesión grupal
 │   ├── useMiembros.ts                  # Lista de nombres de miembros del grupo (para asignar tareas)
 │   ├── useBienestar.ts                 # Check-in emocional, solo localStorage
@@ -72,6 +76,7 @@ src/
 │   └── conocimientos.ts                # Base de conocimiento del asistente IA
 ├── types/index.ts                      # Interfaces TypeScript de todos los modelos
 └── lib/
+    ├── mediciones.ts                   # Config por tipo (unidad, emoji, límites anti-errata), formateo, parseo con coma decimal
     ├── supabase.ts                     # Cliente Supabase (sin auth)
     └── utils.ts                        # cn(), formatearFechaCorta(), diasHasta()
 ```
@@ -123,12 +128,15 @@ Todas las rutas tienen `try/catch` completo y devuelven `{ error }` en JSON ante
 | Medicaciones | `cf_medicaciones` | tabla `medicaciones` |
 | Tareas | `cf_tareas` | tabla `tareas` |
 | Citas | `cf_citas` | tabla `citas` |
+| Mediciones | `cf_mediciones` | tabla `mediciones` (SQL en `supabase-schema.sql`, bloque "Migración 2026-10") |
 | Perfil | `cf_perfil` | solo local (privado) |
 | Bienestar | `cf_bienestar` | solo local (privado) |
 
 Supabase sin auth (`persistSession: false`). El grupo se identifica por `grupo_id` (UUID compartido). Los hooks suscriben a Realtime para sincronización instantánea.
 
 **Formato clave de toma:** `completadasEn: string[]` → cada elemento es `"YYYY-MM-DD_HH:mm"`.
+
+**Tabla `mediciones`:** `tipo` (tension/glucosa/temperatura/peso/saturacion/pulso), `valor` (en tensión = máxima), `valor2` (solo tensión = mínima), `persona` (texto libre: familiar, cuidador u otra), `registrada_por`. La app **no interpreta valores** a propósito (sin rangos "normales" ni alertas): los límites de `lib/mediciones.ts` solo detectan erratas al teclear. **Privacidad en grupo**: interruptor "Compartir con el grupo" en el formulario (activado por defecto solo si la persona es el familiar). Compartidas → tabla `mediciones`; privadas → `cf_mediciones` en el dispositivo, se muestran mezcladas con 🔒 "Solo tú" (`privada` es un campo derivado, no se guarda). Compartir con miembros concretos se descartó a propósito: sin auth, cualquier miembro con el `grupo_id` puede leer toda la tabla, así que sería privacidad falsa. Al crear grupo solo se suben las del familiar (y se quitan del dispositivo para no duplicarlas); las demás siguen privadas.
 
 **Tabla `tareas`:** además de lo básico tiene `asignada_a` (persona del grupo, o vacío = libre), `completada_por` (quién la marcó hecha) y `creada_por` (quién la pidió — columna añadida vía migración manual en el SQL Editor de Supabase, ver `supabase-schema.sql`).
 
@@ -200,7 +208,10 @@ git push         # despliega automáticamente a Vercel
 **Contexto**: esta sesión empezó investigando un gasto sorpresa de OpenAI (ver `../Adsense/CLAUDE.md`), y de ahí Fran preguntó por el estado de Supabase (había recibido 2 avisos de pausa por inactividad de `ant.wilson@supabase.com`, 10 jul y 16 ago).
 
 - **Proyecto confirmado sano** (`Fran-max773's Project`, org `cuidador-familiar`, `https://supabase.com/dashboard/project/geqxighknaxsastdqepk`) — status "Healthy" al comprobarlo, 0 total requests (tráfico real muy bajo, por eso se pausa tan fácil).
-- **Solución permanente al problema recurrente** (esto ya había pasado dos veces, 20-jul y 18-ago, ver arriba): se creó un **GitHub Action programado** en el repo `Fran-max773/cuidador-familiar` → `.github/workflows/keep-supabase-alive.yml`. Corre solo cada 3 días (`0 6 */3 * *`, UTC) y hace un `curl` sin credenciales a `https://geqxighknaxsastdqepk.supabase.co/auth/v1/health` y `/rest/v1/` — el 401 es esperado y no importa, lo que cuenta es que la petición llega al proyecto y resetea el contador de inactividad. Verificado con una ejecución manual (`gh workflow run`) que respondió 401/401, confirmando que sí llega tráfico real. **Con esto no debería volver a pausarse sin que nadie se entere** — ya no hace falta la solución manual de "entrar de vez en cuando a la app" ni plantearse pasar a Supabase Pro solo por esto.
+- **Solución permanente al problema recurrente** (esto ya había pasado dos veces, 20-jul y 18-ago, ver arriba): se creó un **GitHub Action programado** en el repo `Fran-max773/cuidador-familiar` → `.github/workflows/keep-supabase-alive.yml`. Corre solo cada 3 días (`0 6 */3 * *`, UTC) y hace un `curl` sin credenciales a `https://geqxighknaxsastdqepk.supabase.co/auth/v1/health` y `/rest/v1/` — el 401 es esperado y no importa, lo que cuenta es que la petición llega al proyecto y resetea el contador de inactividad. Verificado con una ejecución manual (`gh workflow run`) que respondió 401/401, confirmando que sí llega tráfico real. ~~Con esto no debería volver a pausarse~~ **FALSO, ver corrección del 2026-09-27 abajo.**
+- **Corrección 2026-09-27: el ping sin credenciales NO sirvió.** El workflow corrió puntualmente cada 3 días (8 ejecuciones correctas), pero Supabase siguió mandando avisos (9, 16 y 24 sept) y **pausó el proyecto el 25 de septiembre**. Tocar `/auth/v1/health` o `/rest/v1/` sin clave no cuenta como actividad: hace falta una consulta real a la base de datos. Fran lo reactivó ("Resume project") y el workflow se reescribió así: **a diario** (`0 6 * * *`) hace `GET /rest/v1/grupos?select=id&limit=1` con la clave anon (guardada como secreto `SUPABASE_ANON_KEY` del repo) y falla con un error explicativo si no recibe 200. Verificado con una ejecución manual: `grupos: 200`. Si vuelven a llegar correos de "Run failed" de este workflow, lo más probable es que el proyecto se haya pausado. **Pendiente de confirmar** que en las próximas semanas no llega ningún aviso nuevo de `ant.wilson@supabase.com`; si llegara, la alternativa es Supabase Pro.
+- **Segunda corrección 2026-10-13**: aun con la consulta diaria funcionando (15 días seguidos en 200), el **11-oct llegó otro aviso de pausa** ("not seen sufficient activity"). Reforzado: **4 veces al día** (`17 0,6,12,18 * * *`) leyendo las **5 tablas** (grupos, miembros, tareas, medicaciones, citas, `select=*&limit=5`). Verificado con ejecución manual (5×200). Si aun así vuelve a llegar un aviso de `ant.wilson@supabase.com`, las alternativas son una escritura real periódica (tabla dedicada de keep-alive) o Supabase Pro.
+- **Cambio de Supabase a partir del 30 de octubre de 2026**: las tablas NUEVAS de `public` necesitan `GRANT` explícitos para que la API las vea (las existentes no cambian). Si se crea la tabla de perfiles (ver pendientes), añadir los grants en el mismo SQL. Esta app no usa auth y trabaja con el rol `anon`, así que probablemente necesite `select, insert, update, delete` para `anon`: comprobar antes cómo están los grants y el RLS de las tablas existentes.
 - Repo por defecto usa rama `master` (no `main`) — importante si se vuelve a tocar vía API de contenidos de GitHub (`gh api -X PUT repos/.../contents/...` necesita `-X PUT`, con solo `-f` por defecto hace POST y da 404 engañoso).
 
 ### Nueva iniciativa: dar visibilidad a la app — Instagram + reforzar tograndparents.com
@@ -221,6 +232,9 @@ Fran quiere crear una cuenta de Instagram (aún no creada — requiere que él l
 ---
 
 ## Tareas pendientes
+
+### ✅ Tabla `mediciones` creada en Supabase (2026-10-13)
+Hecho por Claude desde el SQL Editor del dashboard con Claude in Chrome (sesión de Fran ya iniciada; la clave anon no permite DDL, así que esa es la vía para futuras migraciones). El SQL se cargó en el editor con `window.monaco.editor.getEditors()[0].setValue(sql)` y luego se pulsó Run. Verificado con la clave anon: SELECT 200, INSERT 201, DELETE 200 (con una fila de prueba sin `grupo_id`, ya borrada).
 
 ### Ampliar corrección de tareas más allá de 3 días
 **Por qué:** `useTareas.ts` solo expone `tareasRecientes` (3 días) para el panel de corrección. Los usuarios no pueden corregir olvidos de más de 3 días atrás.
