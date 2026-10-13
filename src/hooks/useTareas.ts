@@ -61,9 +61,13 @@ export function useTareas() {
             setTareasRemoto((p) => p.some((t) => t.id === payload.new.id) ? p : [...p, fromDb(payload.new)]);
           else if (payload.eventType === "UPDATE")
             setTareasRemoto((p) => p.map((t) => t.id === payload.new.id ? fromDb(payload.new) : t));
-          else if (payload.eventType === "DELETE")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setTareasRemoto((p) => p.filter((t) => t.id !== (payload.old as any).id));
+        })
+      // Supabase no entrega DELETE con filtro: se escucha sin filtro (solo trae el id)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "tareas" },
+        (payload) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const id = (payload.old as any)?.id;
+          if (id) setTareasRemoto((p) => p.filter((t) => t.id !== id));
         })
       .subscribe();
 

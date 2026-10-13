@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
@@ -26,6 +26,7 @@ function fromDb(r: any): Medicacion {
 }
 
 export function useMedicacion() {
+  const instanceId = useId();
   const [sesion, setSesion] = useState(getSesion);
 
   const [medicacionesLocal, setMedicacionesLocal] = useLocalStorage<Medicacion[]>("cf_medicaciones", []);
@@ -49,7 +50,7 @@ export function useMedicacion() {
     cargar();
 
     const channel = supabase
-      .channel(`med-${sesion.grupoId}`)
+      .channel(`med-${sesion.grupoId}-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "medicaciones",
         filter: `grupo_id=eq.${sesion.grupoId}` },
         (payload) => {
@@ -57,14 +58,18 @@ export function useMedicacion() {
             setMedicacionesRemoto((p) => p.some((m) => m.id === payload.new.id) ? p : [...p, fromDb(payload.new)]);
           else if (payload.eventType === "UPDATE")
             setMedicacionesRemoto((p) => p.map((m) => m.id === payload.new.id ? fromDb(payload.new) : m));
-          else if (payload.eventType === "DELETE")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setMedicacionesRemoto((p) => p.filter((m) => m.id !== (payload.old as any).id));
+        })
+      // Supabase no entrega DELETE con filtro: se escucha sin filtro (solo trae el id)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "medicaciones" },
+        (payload) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const id = (payload.old as any)?.id;
+          if (id) setMedicacionesRemoto((p) => p.filter((m) => m.id !== id));
         })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [sesion?.grupoId]);
+  }, [sesion?.grupoId, instanceId]);
 
   const hoy = hoyStr();
 

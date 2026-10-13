@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
@@ -22,6 +22,7 @@ function fromDb(r: any): Cita {
 }
 
 export function useCitas() {
+  const instanceId = useId();
   const [sesion, setSesion] = useState(getSesion);
   const [citasLocal, setCitasLocal] = useLocalStorage<Cita[]>("cf_citas", []);
   const [citasRemoto, setCitasRemoto] = useState<Cita[]>([]);
@@ -41,7 +42,7 @@ export function useCitas() {
     cargar();
 
     const channel = supabase
-      .channel(`citas-${sesion.grupoId}`)
+      .channel(`citas-${sesion.grupoId}-${instanceId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "citas",
         filter: `grupo_id=eq.${sesion.grupoId}` },
         (payload) => {
@@ -51,14 +52,18 @@ export function useCitas() {
                 `${a.fecha}${a.hora}`.localeCompare(`${b.fecha}${b.hora}`)));
           else if (payload.eventType === "UPDATE")
             setCitasRemoto((p) => p.map((c) => c.id === payload.new.id ? fromDb(payload.new) : c));
-          else if (payload.eventType === "DELETE")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setCitasRemoto((p) => p.filter((c) => c.id !== (payload.old as any).id));
+        })
+      // Supabase no entrega DELETE con filtro: se escucha sin filtro (solo trae el id)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "citas" },
+        (payload) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const id = (payload.old as any)?.id;
+          if (id) setCitasRemoto((p) => p.filter((c) => c.id !== id));
         })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [sesion?.grupoId]);
+  }, [sesion?.grupoId, instanceId]);
 
   // Mostrar: próximas + pasadas recientes no marcadas como realizadas
   const citas = sesion
