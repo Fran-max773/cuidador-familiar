@@ -173,6 +173,12 @@ Supabase no entrega eventos `DELETE` a suscripciones con `filter: grupo_id=eq.�
 ### Grupo de prueba permanente: código `PRUEBA-0001`
 Creado el 2026-10-13 para pruebas de Fran (id `969103ce-02a4-4b35-b863-d6c5b11e9940`, miembro "PruebaB"). Contiene una tarea, una cita, una medicación y una medición con textos `…-PRUEBA-RT`. **No borrarlo** salvo que Fran lo pida. Para pruebas automáticas de Realtime, crear elementos temporales aparte y borrar solo esos.
 
+### Nombre de miembro = texto, no id
+No hay id de miembro en la sesión (`cf_grupo_sesion` guarda `miNombre`). El nombre se copia como texto en `tareas.asignada_a/completada_por/creada_por` y `mediciones.persona/registrada_por`. Por eso `cambiarNombre()` (en `useGrupo.ts`, botón "Cambiar" en Familia) actualiza todas esas columnas y las mediciones privadas del dispositivo, y rechaza nombres ya usados en el grupo. Salir y volver a unirse crea un miembro nuevo (no se borra el anterior): así nació el "Paco"/"Paco2" del grupo real de Fran. La tabla `miembros` **no está en la publicación de Realtime**, así que la lista de miembros solo se refresca al cargar la página.
+
+### Historial: ventana de meses naturales
+`historial/page.tsx` usa una sola ventana de N meses que termina en `mesFin` (por defecto el actual), con flechas ‹ › que la mueven N meses y "Volver a este mes"; la comparten Lista y Calendario (ya no hay selectores Desde/Hasta). Medicación es un acordeón (medicamento → meses) y Tareas/Citas tienen meses plegables (solo el más reciente abierto); al imprimir todo sale desplegado (`hidden print:block`). **Fechas siempre en hora local** (`hoyLocal`, `pad2`): `toISOString()` desplazaba cada día al anterior en España.
+
 ### Paleta `warm` incompleta — cuidado con los degradados
 `tailwind.config.ts` solo define `warm.50/100/200/300/500/600` (**no existe `warm-400`**). Usar una clase con un tono no definido no da error visible: Tailwind simplemente no genera la utilidad y el degradado se desvanece a transparente. Si se usa `warm` en un `bg-gradient-to-*`, verificar visualmente el resultado.
 
