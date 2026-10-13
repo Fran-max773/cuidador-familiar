@@ -58,9 +58,14 @@ export function useMediciones() {
             setRemoto((p) => p.some((m) => m.id === payload.new.id) ? p : [...p, fromDb(payload.new)]);
           else if (payload.eventType === "UPDATE")
             setRemoto((p) => p.map((m) => m.id === payload.new.id ? fromDb(payload.new) : m));
-          else if (payload.eventType === "DELETE")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            setRemoto((p) => p.filter((m) => m.id !== (payload.old as any).id));
+        })
+      // Supabase no entrega DELETE en suscripciones con filtro: se escucha sin filtro.
+      // Solo trae el id; los de otros grupos no coinciden con nada y se ignoran.
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "mediciones" },
+        (payload) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const id = (payload.old as any)?.id;
+          if (id) setRemoto((p) => p.filter((m) => m.id !== id));
         })
       .subscribe();
 
@@ -70,7 +75,12 @@ export function useMediciones() {
   // Lo local nunca sale del dispositivo. En grupo, se muestra junto a lo compartido marcado como privado.
   const mediciones = [
     ...(sesion ? remoto : []),
-    ...local.map((m) => ({ ...m, privada: !!sesion })),
+    // Sin grupo, las propias se guardan como "Yo"; en grupo se muestran con el nombre del miembro
+    ...local.map((m) => ({
+      ...m,
+      persona: sesion && m.persona === "Yo" ? sesion.miNombre : m.persona,
+      privada: !!sesion,
+    })),
   ].sort(ordenarRecientesPrimero);
   const cargado = cargadoLocal && (!sesion || cargadoRemoto);
 
