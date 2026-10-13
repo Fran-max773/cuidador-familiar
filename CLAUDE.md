@@ -165,7 +165,13 @@ Usa `scrollAreaRef` + `el.scrollTop = el.scrollHeight` sobre el contenedor con o
 Usa emojis (no lucide-react). La página `/guia` replica este estilo en sus tarjetas de sección.
 
 ### Canales de Supabase Realtime — nombre único por instancia de hook
-Si el mismo hook (p.ej. `useTareas`) se monta dos veces a la vez (ej. `TareasSection` en Hoy + `BottomNav` en el layout global), **no** uses `channel-${grupoId}` a secas: Supabase reutiliza el canal si el nombre coincide, y añadir un segundo `.on()` a un canal ya suscrito lanza un error real que rompe la página. Incluir un `useId()` de React en el nombre del canal (ya hecho en `useTareas.ts`).
+Si el mismo hook (p.ej. `useTareas`) se monta dos veces a la vez (ej. `TareasSection` en Hoy + `BottomNav` en el layout global), **no** uses `channel-${grupoId}` a secas: Supabase reutiliza el canal si el nombre coincide, y añadir un segundo `.on()` a un canal ya suscrito lanza un error real que rompe la página. Incluir un `useId()` de React en el nombre del canal (hecho en todos los hooks con Realtime). **Incidente 2026-10-13**: `useMiembros` no lo tenía y, al usarse a la vez en Tareas y en el formulario de Mediciones, la página Hoy se caía para cualquiera en un grupo (estuvo en producción ~1 h). Al probar una función en modo grupo, probar también la página Hoy, no solo la página nueva.
+
+### Realtime: los DELETE no llegan con filtro
+Supabase no entrega eventos `DELETE` a suscripciones con `filter: grupo_id=eq.…` (confirmado en prueba real con dos dispositivos, 2026-10-13: el borrado llegaba a la BD pero el otro dispositivo seguía viendo la fila). Resuelto en **todos** los hooks (`useMediciones`, `useTareas`, `useCitas`, `useMedicacion`) con un segundo `.on("postgres_changes", { event: "DELETE", … })` **sin filtro**: solo trae el `id`, y los de otros grupos no coinciden con nada. Cualquier hook nuevo con Realtime debe seguir este patrón.
+
+### Grupo de prueba permanente: código `PRUEBA-0001`
+Creado el 2026-10-13 para pruebas de Fran (id `969103ce-02a4-4b35-b863-d6c5b11e9940`, miembro "PruebaB"). Contiene una tarea, una cita, una medicación y una medición con textos `…-PRUEBA-RT`. **No borrarlo** salvo que Fran lo pida. Para pruebas automáticas de Realtime, crear elementos temporales aparte y borrar solo esos.
 
 ### Paleta `warm` incompleta — cuidado con los degradados
 `tailwind.config.ts` solo define `warm.50/100/200/300/500/600` (**no existe `warm-400`**). Usar una clase con un tono no definido no da error visible: Tailwind simplemente no genera la utilidad y el degradado se desvanece a transparente. Si se usa `warm` en un `bg-gradient-to-*`, verificar visualmente el resultado.
