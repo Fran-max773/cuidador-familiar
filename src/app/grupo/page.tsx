@@ -1,17 +1,23 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Plus, LogIn, Copy, Check, LogOut, Crown } from "lucide-react";
+import { Users, Plus, LogIn, Copy, Check, LogOut, Crown, Pencil } from "lucide-react";
 import { useGrupo } from "@/hooks/useGrupo";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
 export default function GrupoPage() {
   const router = useRouter();
-  const { sesion, cargando, error, crearGrupo, unirseAGrupo, salirDelGrupo } = useGrupo();
+  const { sesion, cargando, error, crearGrupo, unirseAGrupo, salirDelGrupo, cambiarNombre } = useGrupo();
 
   const [modo, setModo] = useState<"menu" | "crear" | "unirse">("menu");
   const [miNombre, setMiNombre] = useState("");
+  const [editandoNombre, setEditandoNombre] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+
+  const handleGuardarNombre = async () => {
+    if (await cambiarNombre(nuevoNombre)) setEditandoNombre(false);
+  };
   const [codigoInput, setCodigoInput] = useState("");
   const [copiado, setCopiado] = useState(false);
 
@@ -69,15 +75,45 @@ export default function GrupoPage() {
 
             <div className="border-t border-beige-200 pt-3">
               <p className="text-sm text-gray-500 mb-1">Tu nombre en el grupo</p>
-              <div className="flex items-center gap-2">
-                {sesion.esPrincipal && <Crown size={14} className="text-warm-500" />}
-                <p className="font-medium text-gray-800">{sesion.miNombre}</p>
-                {sesion.esPrincipal && (
-                  <span className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded-full font-medium">
-                    Cuidador principal
-                  </span>
-                )}
-              </div>
+              {editandoNombre ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={nuevoNombre}
+                    onChange={(e) => setNuevoNombre(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleGuardarNombre()}
+                    className="w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300 text-gray-800"
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-400">
+                    Es el nombre con el que te ven los demás. Se cambiará también en las tareas y mediciones que lleven tu nombre.
+                  </p>
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+                  <div className="flex gap-2">
+                    <Button variante="secundario" className="flex-1" onClick={() => setEditandoNombre(false)}>Cancelar</Button>
+                    <Button className="flex-1" onClick={handleGuardarNombre} disabled={cargando}>
+                      {cargando ? "Guardando…" : "Guardar"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {sesion.esPrincipal && <Crown size={14} className="text-warm-500" />}
+                  <p className="font-medium text-gray-800">{sesion.miNombre}</p>
+                  {sesion.esPrincipal && (
+                    <span className="text-xs bg-warm-100 text-warm-600 px-2 py-0.5 rounded-full font-medium">
+                      Cuidador principal
+                    </span>
+                  )}
+                  <button
+                    onClick={() => { setNuevoNombre(sesion.miNombre); setEditandoNombre(true); }}
+                    className="ml-auto min-w-[44px] min-h-[44px] flex items-center justify-center gap-1 text-sm text-sage-600 hover:text-sage-700"
+                    aria-label="Cambiar mi nombre en el grupo"
+                  >
+                    <Pencil size={15} /> Cambiar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </Card>

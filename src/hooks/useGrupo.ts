@@ -205,5 +205,54 @@ export function useGrupo() {
     setSesionState(null);
   };
 
-  return { sesion, cargando, error, crearGrupo, unirseAGrupo, salirDelGrupo };
+  // El nombre de miembro se guarda como texto en varias tablas (no hay id de miembro),
+  // así que hay que cambiarlo en todas para no perder lo asignado a esa persona.
+  const cambiarNombre = async (nuevoNombre: string): Promise<boolean> => {
+    const actual = getSesion();
+    const nuevo = nuevoNombre.trim();
+    if (!actual) return false;
+    if (!nuevo) { setError("Escribe un nombre."); return false; }
+    if (nuevo === actual.miNombre) return true;
+    setCargando(true); setError("");
+    try {
+      const g = actual.grupoId;
+      const viejo = actual.miNombre;
+
+      const { data: existentes } = await supabase.from("miembros").select("nombre").eq("grupo_id", g);
+      if ((existentes ?? []).some((m) => m.nombre.toLowerCase() === nuevo.toLowerCase())) {
+        setError("Ya hay alguien con ese nombre en el grupo. Elige otro.");
+        return false;
+      }
+
+      const { error: eMiembro } = await supabase.from("miembros")
+        .update({ nombre: nuevo }).eq("grupo_id", g).eq("nombre", viejo);
+      if (eMiembro) throw eMiembro;
+
+      await Promise.all([
+        supabase.from("tareas").update({ asignada_a: nuevo }).eq("grupo_id", g).eq("asignada_a", viejo),
+        supabase.from("tareas").update({ completada_por: nuevo }).eq("grupo_id", g).eq("completada_por", viejo),
+        supabase.from("tareas").update({ creada_por: nuevo }).eq("grupo_id", g).eq("creada_por", viejo),
+        supabase.from("mediciones").update({ persona: nuevo }).eq("grupo_id", g).eq("persona", viejo),
+        supabase.from("mediciones").update({ registrada_por: nuevo }).eq("grupo_id", g).eq("registrada_por", viejo),
+      ]);
+
+      // Mediciones privadas de este dispositivo apuntadas con el nombre antiguo
+      try {
+        const locales: Medicion[] = JSON.parse(localStorage.getItem("cf_mediciones") ?? "[]");
+        localStorage.setItem("cf_mediciones", JSON.stringify(
+          locales.map((m) => (m.persona === viejo ? { ...m, persona: nuevo } : m))
+        ));
+      } catch { /* sin mediciones locales */ }
+
+      const s: SesionGrupo = { ...actual, miNombre: nuevo };
+      setSesion(s);
+      setSesionState(s);
+      return true;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se ha podido cambiar el nombre.");
+      return false;
+    } finally { setCargando(false); }
+  };
+
+  return { sesion, cargando, error, crearGrupo, unirseAGrupo, salirDelGrupo, cambiarNombre };
 }
