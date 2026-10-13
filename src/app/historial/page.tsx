@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { Printer, Pill, ClipboardList, CalendarDays, Check, X, Minus, List, LayoutGrid } from "lucide-react";
+import { Printer, Pill, ClipboardList, CalendarDays, Check, X, List, LayoutGrid, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { getSesion } from "@/hooks/useGrupo";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -16,16 +16,35 @@ const PERIODOS = [
   { label: "1 año",   meses: 12 },
 ];
 
-// ── Helpers de fecha ──────────────────────────────────────────────────────────
-function getRango(meses: number): { desde: string; hasta: string } {
-  const hasta = new Date();
-  const desde = new Date();
-  desde.setMonth(desde.getMonth() - meses);
-  desde.setDate(1);
-  return {
-    desde: desde.toISOString().split("T")[0],
-    hasta: hasta.toISOString().split("T")[0],
-  };
+// ── Helpers de fecha (en hora local, sin toISOString, que desplaza a UTC) ─────
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+function hoyLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function mesActual(): string {
+  return hoyLocal().slice(0, 7);
+}
+
+function sumarMeses(ym: string, n: number): string {
+  const [a, m] = ym.split("-").map(Number);
+  const d = new Date(a, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+function ultimoDiaMes(ym: string): string {
+  const [a, m] = ym.split("-").map(Number);
+  return `${ym}-${pad2(new Date(a, m, 0).getDate())}`;
+}
+
+function etiquetaVentana(mesIni: string, mesFin: string): string {
+  if (mesIni === mesFin) return mesLabel(mesFin);
+  const [aI] = mesIni.split("-");
+  const [aF] = mesFin.split("-");
+  const nombreIni = mesLabel(mesIni).split(" ")[0];
+  return aI === aF ? `${nombreIni} – ${mesLabel(mesFin)}` : `${nombreIni} ${aI} – ${mesLabel(mesFin)}`;
 }
 
 function mesLabel(mesStr: string) {
@@ -40,19 +59,12 @@ function diaCorto(fecha: string) {
   return `${d}/${m}`;
 }
 
-function formatearFechaLarga(fechaStr: string): string {
-  const meses = ["enero","febrero","marzo","abril","mayo","junio",
-                 "julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const [, m, d] = fechaStr.split("-");
-  return `${parseInt(d)} de ${meses[parseInt(m) - 1]}`;
-}
-
 function getDiasEnRango(desde: string, hasta: string): string[] {
   const dias: string[] = [];
   const cur = new Date(desde + "T00:00:00");
   const fin = new Date(hasta + "T00:00:00");
   while (cur <= fin) {
-    dias.push(cur.toISOString().split("T")[0]);
+    dias.push(`${cur.getFullYear()}-${pad2(cur.getMonth() + 1)}-${pad2(cur.getDate())}`);
     cur.setDate(cur.getDate() + 1);
   }
   return dias;
@@ -87,116 +99,188 @@ const fromDbMed = (r: any): Medicacion => ({
 });
 
 // ── Sección Medicación ────────────────────────────────────────────────────────
-function SeccionMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desde: string; hasta: string }) {
-  const hoy = new Date().toISOString().split("T")[0];
+interface ResumenMed {
+  med: Medicacion;
+  meses: [string, string[]][];   // [YYYY-MM, días] del más reciente al más antiguo
+  tomadas: number;
+  esperadas: number;
+  pct: number;
+}
 
-  if (!meds.length) return <p className="text-gray-400 text-center py-8">No hay medicación registrada.</p>;
+// Solo cuenta días ya pasados (o hoy): los futuros no se pueden haber tomado aún
+function resumirMedicacion(med: Medicacion, desde: string, hasta: string, hoy: string): ResumenMed | null {
+  const inicio = med.fechaInicio > desde ? med.fechaInicio : desde;
+  const finRango = hasta < hoy ? hasta : hoy;
+  const fin = med.fechaFin < finRango ? med.fechaFin : finRango;
+  if (inicio > fin) return null;
+
+  const dias = getDiasEnRango(inicio, fin);
+  const diasSet = new Set(dias);
+  const porMes: Record<string, string[]> = {};
+  for (const d of dias) (porMes[d.slice(0, 7)] ??= []).push(d);
+
+  const esperadas = dias.length * med.horas.length;
+  const tomadas = med.completadasEn.filter((k) => diasSet.has(k.split("_")[0])).length;
+  return {
+    med,
+    meses: Object.entries(porMes).sort((a, b) => b[0].localeCompare(a[0])),
+    tomadas, esperadas,
+    pct: esperadas ? Math.round((tomadas / esperadas) * 100) : 0,
+  };
+}
+
+function colorPct(pct: number) {
+  return pct >= 80 ? "bg-sage-100 text-sage-700" : pct >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600";
+}
+
+function MesMedicacion({ med, mes, dias, abiertoInicial }: {
+  med: Medicacion; mes: string; dias: string[]; abiertoInicial: boolean;
+}) {
+  const [abierto, setAbierto] = useState(abiertoInicial);
+  const tomaSet = new Set(med.completadasEn);
+  const diasSet = new Set(dias);
+  const tomadas = med.completadasEn.filter((k) => diasSet.has(k.split("_")[0])).length;
+  const esperadas = dias.length * med.horas.length;
 
   return (
-    <div className="space-y-8">
-      {meds.map((med) => {
-        // Días en que este medicamento estaba vigente dentro del rango
-        const inicioEfectivo = med.fechaInicio > desde ? med.fechaInicio : desde;
-        const finEfectivo    = med.fechaFin < hasta    ? med.fechaFin    : hasta;
-        if (inicioEfectivo > finEfectivo) return null;
-
-        const diasVigentes = getDiasEnRango(inicioEfectivo, finEfectivo);
-        const tomaSet = new Set(med.completadasEn);
-
-        // Agrupar días por mes
-        const porMes: Record<string, string[]> = {};
-        for (const d of diasVigentes) {
-          const mes = d.slice(0, 7);
-          (porMes[mes] ??= []).push(d);
-        }
-
-        const meses = Object.entries(porMes).sort((a, b) => b[0].localeCompare(a[0]));
-        const totalEsperadas = diasVigentes.length * med.horas.length;
-        const totalTomadas   = med.completadasEn.filter(k => {
-          const f = k.split("_")[0];
-          return f >= inicioEfectivo && f <= finEfectivo;
-        }).length;
-        const pct = totalEsperadas ? Math.round(totalTomadas / totalEsperadas * 100) : 0;
-
-        return (
-          <div key={med.id} className="print-section">
-            {/* Cabecera medicamento */}
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-bold text-gray-800 text-base">
-                  {med.nombre}{med.dosis ? ` — ${med.dosis}` : ""}
-                </h3>
-                <p className="text-sm text-gray-500">Horario: {med.horas.join(", ")}</p>
-              </div>
-              <span className={cn(
-                "text-sm font-bold px-3 py-1 rounded-full",
-                pct >= 80 ? "bg-sage-100 text-sage-700" :
-                pct >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"
-              )}>
-                {pct}% cumplimiento
-              </span>
+    <div className="print-month border-t border-gray-100 first:border-t-0">
+      <button
+        onClick={() => setAbierto((a) => !a)}
+        aria-expanded={abierto}
+        className="w-full min-h-[44px] flex items-center justify-between gap-2 py-2 text-left"
+      >
+        <span className="text-sm font-semibold text-gray-600">{mesLabel(mes)}</span>
+        <span className="flex items-center gap-2 text-xs text-gray-500">
+          {tomadas}/{esperadas} tomas
+          <ChevronDown size={16} className={cn("transition-transform print:hidden", abierto && "rotate-180")} />
+        </span>
+      </button>
+      {/* Plegado en pantalla, pero siempre visible al imprimir */}
+      <div className={cn("space-y-1 pb-3", !abierto && "hidden print:block")}>
+        {[...dias].reverse().map((dia) => (
+          <div key={dia} className="flex items-center gap-3 text-sm">
+            <span className="w-12 text-gray-400 text-xs flex-shrink-0">{diaCorto(dia)}</span>
+            <div className="flex gap-2 flex-wrap">
+              {med.horas.map((hora) => {
+                const tomada = tomaSet.has(`${dia}_${hora}`);
+                return (
+                  <span key={hora} className={cn(
+                    "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
+                    tomada ? "bg-sage-100 text-sage-700" : "bg-red-50 text-red-500"
+                  )}>
+                    {tomada ? <Check size={10} /> : <X size={10} />}
+                    {hora}
+                  </span>
+                );
+              })}
             </div>
-
-            {/* Tabla mes a mes */}
-            {meses.map(([mes, dias]) => {
-              const tomEnMes = med.completadasEn.filter(k => k.startsWith(mes)).length;
-              const espEnMes = dias.length * med.horas.length;
-              return (
-                <div key={mes} className="mb-4 print-month">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 border-b border-gray-100 pb-1">
-                    {mesLabel(mes)} — {tomEnMes}/{espEnMes} tomas
-                  </p>
-                  <div className="space-y-1">
-                    {[...dias].reverse().map((dia) => (
-                      <div key={dia} className="flex items-center gap-3 text-sm">
-                        <span className="w-12 text-gray-400 text-xs flex-shrink-0">{diaCorto(dia)}</span>
-                        <div className="flex gap-2 flex-wrap">
-                          {med.horas.map((hora) => {
-                            const clave = `${dia}_${hora}`;
-                            const tomada = tomaSet.has(clave);
-                            const esF    = dia > hoy;
-                            return (
-                              <span key={hora} className={cn(
-                                "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
-                                esF    ? "bg-gray-50 text-gray-400" :
-                                tomada ? "bg-sage-100 text-sage-700" : "bg-red-50 text-red-500"
-                              )}>
-                                {esF ? <Minus size={10} /> : tomada ? <Check size={10} /> : <X size={10} />}
-                                {hora}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
           </div>
-        );
-      })}
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TarjetaMedicamento({ resumen, abiertoInicial }: { resumen: ResumenMed; abiertoInicial: boolean }) {
+  const [abierto, setAbierto] = useState(abiertoInicial);
+  const { med, meses, tomadas, esperadas, pct } = resumen;
+
+  return (
+    <div className="print-section bg-white rounded-2xl border border-beige-200 overflow-hidden">
+      <button
+        onClick={() => setAbierto((a) => !a)}
+        aria-expanded={abierto}
+        className="w-full min-h-[44px] flex items-center gap-3 px-4 py-3 text-left hover:bg-beige-50 transition-colors"
+      >
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-gray-800 truncate">
+            {med.nombre}{med.dosis ? ` — ${med.dosis}` : ""}
+          </p>
+          <p className="text-xs text-gray-500">
+            Horario: {med.horas.join(", ")} · {tomadas}/{esperadas} tomas
+          </p>
+        </div>
+        <span className={cn("text-sm font-bold px-3 py-1 rounded-full flex-shrink-0", colorPct(pct))}>
+          {pct}%
+        </span>
+        <ChevronDown size={20} className={cn("text-gray-400 flex-shrink-0 transition-transform print:hidden", abierto && "rotate-180")} />
+      </button>
+      <div className={cn("px-4 pb-1", !abierto && "hidden print:block")}>
+        {meses.map(([mes, dias], i) => (
+          <MesMedicacion key={mes} med={med} mes={mes} dias={dias} abiertoInicial={i === 0} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SeccionMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desde: string; hasta: string }) {
+  const hoy = hoyLocal();
+  const resumenes = meds
+    .map((m) => resumirMedicacion(m, desde, hasta, hoy))
+    .filter((r): r is ResumenMed => r !== null);
+
+  if (!resumenes.length) {
+    return <p className="text-gray-400 text-center py-8">No hay tomas de medicación en este período.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-gray-500 print:hidden">
+        {resumenes.length === 1
+          ? "Toca un mes para ver el detalle día a día."
+          : `${resumenes.length} medicamentos. Toca uno para ver el detalle día a día.`}
+      </p>
+      {resumenes.map((r) => (
+        // key con el rango: al cambiar de período, los acordeones vuelven a su estado inicial
+        <TarjetaMedicamento key={`${r.med.id}-${desde}-${hasta}`} resumen={r} abiertoInicial={resumenes.length === 1} />
+      ))}
+    </div>
+  );
+}
+
+// ── Mes plegable (Tareas y Citas): plegado en pantalla, siempre visible al imprimir ──
+function MesPlegable({ titulo, resumen, abiertoInicial, children }: {
+  titulo: string; resumen: string; abiertoInicial: boolean; children: React.ReactNode;
+}) {
+  const [abierto, setAbierto] = useState(abiertoInicial);
+  return (
+    <div className="print-month bg-white rounded-2xl border border-beige-200 overflow-hidden">
+      <button
+        onClick={() => setAbierto((a) => !a)}
+        aria-expanded={abierto}
+        className="w-full min-h-[44px] flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-beige-50 transition-colors"
+      >
+        <span className="font-semibold text-gray-800">{titulo}</span>
+        <span className="flex items-center gap-2 text-xs text-gray-500">
+          {resumen}
+          <ChevronDown size={18} className={cn("text-gray-400 transition-transform print:hidden", abierto && "rotate-180")} />
+        </span>
+      </button>
+      <div className={cn("px-4 pb-4", !abierto && "hidden print:block")}>{children}</div>
     </div>
   );
 }
 
 // ── Sección Tareas ────────────────────────────────────────────────────────────
-function SeccionTareas({ tareas }: { tareas: Tarea[] }) {
+function SeccionTareas({ tareas, claveRango }: { tareas: Tarea[]; claveRango: string }) {
   if (!tareas.length) return <p className="text-gray-400 text-center py-8">No hay tareas en este período.</p>;
 
   const meses = agruparPorMes([...tareas].sort((a,b) => b.fecha.localeCompare(a.fecha)));
   const completadas = tareas.filter(t => t.completada).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <p className="text-sm text-gray-500">
         {completadas} completadas · {tareas.length - completadas} pendientes · {tareas.length} total
       </p>
-      {meses.map(([mes, items]) => (
-        <div key={mes} className="print-month">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 border-b border-gray-100 pb-1">
-            {mesLabel(mes)} — {items.filter(t=>t.completada).length}/{items.length} completadas
-          </p>
+      {meses.map(([mes, items], i) => (
+        <MesPlegable
+          key={`${mes}-${claveRango}`}
+          titulo={mesLabel(mes)}
+          resumen={`${items.filter(t => t.completada).length}/${items.length} completadas`}
+          abiertoInicial={i === 0}
+        >
           <div className="space-y-1.5">
             {items.map((t) => (
               <div key={t.id} className="flex items-start gap-3 text-sm">
@@ -218,7 +302,7 @@ function SeccionTareas({ tareas }: { tareas: Tarea[] }) {
               </div>
             ))}
           </div>
-        </div>
+        </MesPlegable>
       ))}
     </div>
   );
@@ -233,8 +317,8 @@ const TIPOS_COLOR: Record<string, string> = {
   analisis: "bg-amber-100 text-amber-700", otro: "bg-gray-100 text-gray-600",
 };
 
-function SeccionCitas({ citas }: { citas: Cita[] }) {
-  const hoy = new Date().toISOString().split("T")[0];
+function SeccionCitas({ citas, claveRango }: { citas: Cita[]; claveRango: string }) {
+  const hoy = hoyLocal();
   if (!citas.length) return <p className="text-gray-400 text-center py-8">No hay citas en este período.</p>;
 
   const meses = agruparPorMes([...citas].sort((a,b) => b.fecha.localeCompare(a.fecha)));
@@ -243,15 +327,17 @@ function SeccionCitas({ citas }: { citas: Cita[] }) {
   const pendientes = citas.filter(c => c.fecha <= hoy && !c.realizada).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <p className="text-sm text-gray-500">
         {proximas} próximas · {realizadas} realizadas · {pendientes > 0 ? `${pendientes} sin confirmar · ` : ""}{citas.length} total
       </p>
-      {meses.map(([mes, items]) => (
-        <div key={mes} className="print-month">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 border-b border-gray-100 pb-1">
-            {mesLabel(mes)}
-          </p>
+      {meses.map(([mes, items], i) => (
+        <MesPlegable
+          key={`${mes}-${claveRango}`}
+          titulo={mesLabel(mes)}
+          resumen={`${items.length} ${items.length === 1 ? "cita" : "citas"}`}
+          abiertoInicial={i === 0}
+        >
           <div className="space-y-2">
             {items.map((c) => {
               const esPasadaOHoy = c.fecha <= hoy;
@@ -290,7 +376,7 @@ function SeccionCitas({ citas }: { citas: Cita[] }) {
               );
             })}
           </div>
-        </div>
+        </MesPlegable>
       ))}
     </div>
   );
@@ -313,21 +399,6 @@ function getMesesEnRango(desde: string, hasta: string): { año: number; mes: num
   return result;
 }
 
-// Genera opciones de mes/año: 2 años atrás → 2 años adelante
-function opcionesMes(): { value: string; label: string }[] {
-  const opts: { value: string; label: string }[] = [];
-  const d = new Date(); d.setFullYear(d.getFullYear() - 2); d.setDate(1);
-  const fin = new Date(); fin.setFullYear(fin.getFullYear() + 2);
-  while (d <= fin) {
-    opts.push({
-      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      label: `${MESES_NOMBRE[d.getMonth()]} ${d.getFullYear()}`,
-    });
-    d.setMonth(d.getMonth() + 1);
-  }
-  return opts;
-}
-const OPCIONES_MES = opcionesMes();
 
 function CalendarioMes({ año, mes, renderDia, leyenda }: {
   año: number; mes: number;
@@ -419,7 +490,7 @@ function CalendarioTareas({ tareas, calDesde, calHasta }: { tareas: Tarea[]; cal
 }
 
 function CalendarioMedicacion({ meds, calDesde, calHasta }: { meds: Medicacion[]; calDesde: string; calHasta: string }) {
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocal();
   return (
     <div>
       {getMesesEnRango(calDesde, calHasta).map(({ año, mes }) => (
@@ -447,7 +518,7 @@ function CalendarioMedicacion({ meds, calDesde, calHasta }: { meds: Medicacion[]
 }
 
 function CalendarioCitas({ citas, calDesde, calHasta }: { citas: Cita[]; calDesde: string; calHasta: string }) {
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocal();
   const porFecha = useMemo(() => {
     const m: Record<string, Cita[]> = {};
     for (const c of citas) (m[c.fecha] ??= []).push(c);
@@ -486,37 +557,22 @@ export default function HistorialPage() {
   const [sesion]                        = useState(getSesion);
   const [vistaCalendario, setVistaCalendario] = useState(false);
 
-  // Rango libre para vista calendario (permite meses futuros)
-  const [calDesde, setCalDesde] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const [calHasta, setCalHasta] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() + 11);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
+  // Ventana de meses naturales que termina en mesFin (por defecto, el mes actual).
+  // La comparten la vista Lista y la vista Calendario.
+  const [mesFin, setMesFin] = useState(mesActual);
+  const numMeses = PERIODOS[periodoIdx].meses;
+  const mesIni = sumarMeses(mesFin, -(numMeses - 1));
+  const desde = `${mesIni}-01`;
+  const hasta = ultimoDiaMes(mesFin);
+  const esMesActual = mesFin === mesActual();
+  // Hacia delante solo hasta 12 meses (citas futuras); hacia atrás sin límite
+  const puedeAvanzar = mesFin < sumarMeses(mesActual(), 12);
 
-  const { desde, hasta } = useMemo(() => getRango(PERIODOS[periodoIdx].meses), [periodoIdx]);
-
-  // Al elegir un período, aplica también el mismo rango a la vista calendario
-  // (calDesde/calHasta), que si no queda descoordinada y siempre muestra 12 meses.
   const seleccionarPeriodo = (i: number) => {
     setPeriodo(i);
-    const meses = PERIODOS[i].meses;
-    const hoy = new Date();
-    const inicio = new Date();
-    inicio.setMonth(inicio.getMonth() - (meses - 1));
-    setCalDesde(`${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, "0")}`);
-    setCalHasta(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`);
+    setMesFin(mesActual());
   };
-
-  // Rango efectivo: para calendario usa calDesde/calHasta (incluye futuro)
-  const desdeEfectivo = vistaCalendario ? `${calDesde}-01` : desde;
-  const hastaEfectivo = useMemo(() => {
-    if (!vistaCalendario) return hasta;
-    const [a, m] = calHasta.split("-").map(Number);
-    return new Date(a, m, 0).toISOString().split("T")[0];
-  }, [vistaCalendario, calHasta, hasta]);
+  const moverVentana = (sentido: 1 | -1) => setMesFin((m) => sumarMeses(m, sentido * numMeses));
 
   useEffect(() => {
     setCargando(true);
@@ -525,8 +581,8 @@ export default function HistorialPage() {
       const t: Tarea[]      = JSON.parse(localStorage.getItem("cf_tareas")        ?? "[]");
       const c: Cita[]       = JSON.parse(localStorage.getItem("cf_citas")         ?? "[]");
       const m: Medicacion[] = JSON.parse(localStorage.getItem("cf_medicaciones")  ?? "[]");
-      setTareas(t.filter(x => x.fecha >= desdeEfectivo && x.fecha <= hastaEfectivo));
-      setCitas(c.filter(x => x.fecha >= desdeEfectivo && x.fecha <= hastaEfectivo));
+      setTareas(t.filter(x => x.fecha >= desde && x.fecha <= hasta));
+      setCitas(c.filter(x => x.fecha >= desde && x.fecha <= hasta));
       setMeds(m);
       setCargando(false);
     } else {
@@ -534,9 +590,9 @@ export default function HistorialPage() {
         const gid = sesion.grupoId;
         const [{ data: t }, { data: c }, { data: m }] = await Promise.all([
           supabase.from("tareas").select("*").eq("grupo_id", gid)
-            .gte("fecha", desdeEfectivo).lte("fecha", hastaEfectivo),
+            .gte("fecha", desde).lte("fecha", hasta),
           supabase.from("citas").select("*").eq("grupo_id", gid)
-            .gte("fecha", desdeEfectivo).lte("fecha", hastaEfectivo),
+            .gte("fecha", desde).lte("fecha", hasta),
           supabase.from("medicaciones").select("*").eq("grupo_id", gid),
         ]);
         setTareas((t ?? []).map(fromDbTarea));
@@ -545,7 +601,7 @@ export default function HistorialPage() {
         setCargando(false);
       })();
     }
-  }, [periodoIdx, sesion?.grupoId, desdeEfectivo, hastaEfectivo]);
+  }, [sesion?.grupoId, desde, hasta]);
 
   const perfil = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -598,7 +654,7 @@ export default function HistorialPage() {
           <h1 className="text-xl font-bold text-gray-800">{tituloPrint}</h1>
           <p className="text-sm text-gray-500 mt-1">
             {tab === "tareas" ? "Tareas" : tab === "medicacion" ? "Medicación" : "Citas"}
-            {" · "}Período: {diaCorto(desde).split("/").reverse().join("/")} — {diaCorto(hasta).split("/").reverse().join("/")}
+            {" · "}Período: {etiquetaVentana(mesIni, mesFin)}
           </p>
           <hr className="mt-2 border-gray-200" />
         </div>
@@ -625,11 +681,35 @@ export default function HistorialPage() {
                 </button>
               ))}
             </div>
-            {!vistaCalendario && (
-              <p className="text-xs text-gray-400 text-center">
-                Del {formatearFechaLarga(desde)} al {formatearFechaLarga(hasta)} de {new Date(hasta).getFullYear()}
-              </p>
-            )}
+            {/* Navegador de meses */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => moverVentana(-1)}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-beige-200 text-gray-600 hover:bg-beige-50"
+                aria-label={numMeses === 1 ? "Mes anterior" : `${numMeses} meses anteriores`}
+              >
+                <ChevronLeft size={22} />
+              </button>
+              <div className="flex-1 text-center">
+                <p className="font-semibold text-gray-800">{etiquetaVentana(mesIni, mesFin)}</p>
+                {!esMesActual && (
+                  <button
+                    onClick={() => setMesFin(mesActual())}
+                    className="text-xs text-sky-600 underline min-h-[24px]"
+                  >
+                    Volver a este mes
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => moverVentana(1)}
+                disabled={!puedeAvanzar}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-beige-200 text-gray-600 hover:bg-beige-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label={numMeses === 1 ? "Mes siguiente" : `${numMeses} meses siguientes`}
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
           </div>
 
           {/* Pestañas */}
@@ -667,28 +747,6 @@ export default function HistorialPage() {
             </button>
           </div>
 
-          {/* Selectores de mes solo para calendario */}
-          {vistaCalendario && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-gray-500 font-medium flex-shrink-0">Desde:</span>
-              <select
-                value={calDesde}
-                onChange={(e) => setCalDesde(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-beige-200 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
-              >
-                {OPCIONES_MES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <span className="text-sm text-gray-500 font-medium flex-shrink-0">Hasta:</span>
-              <select
-                value={calHasta}
-                onChange={(e) => setCalHasta(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl border border-beige-200 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
-              >
-                {OPCIONES_MES.filter((o) => o.value >= calDesde).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-          )}
-
           {/* Botón imprimir */}
           <button
             onClick={() => window.print()}
@@ -706,15 +764,15 @@ export default function HistorialPage() {
           <div className="print:pt-2">
             {vistaCalendario ? (
               <>
-                {tab === "tareas"     && <CalendarioTareas tareas={tareas} calDesde={calDesde} calHasta={calHasta} />}
-                {tab === "medicacion" && <CalendarioMedicacion meds={meds} calDesde={calDesde} calHasta={calHasta} />}
-                {tab === "citas"      && <CalendarioCitas citas={citas} calDesde={calDesde} calHasta={calHasta} />}
+                {tab === "tareas"     && <CalendarioTareas tareas={tareas} calDesde={mesIni} calHasta={mesFin} />}
+                {tab === "medicacion" && <CalendarioMedicacion meds={meds} calDesde={mesIni} calHasta={mesFin} />}
+                {tab === "citas"      && <CalendarioCitas citas={citas} calDesde={mesIni} calHasta={mesFin} />}
               </>
             ) : (
               <>
-                {tab === "tareas"     && <SeccionTareas tareas={tareas} />}
+                {tab === "tareas"     && <SeccionTareas tareas={tareas} claveRango={`${desde}-${hasta}`} />}
                 {tab === "medicacion" && <SeccionMedicacion meds={meds} desde={desde} hasta={hasta} />}
-                {tab === "citas"      && <SeccionCitas citas={citas} />}
+                {tab === "citas"      && <SeccionCitas citas={citas} claveRango={`${desde}-${hasta}`} />}
               </>
             )}
           </div>
