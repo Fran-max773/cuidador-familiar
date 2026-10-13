@@ -30,6 +30,21 @@ export interface Cita {
   realizada?: boolean;
 }
 
+export type TipoMedicion = "tension" | "glucosa" | "temperatura" | "peso" | "saturacion" | "pulso";
+
+export interface Medicion {
+  id: string;
+  tipo: TipoMedicion;
+  valor: number;
+  valor2?: number | null;   // solo tensión: mínima (diastólica); valor = máxima (sistólica)
+  persona: string;          // a quién se le ha tomado
+  fecha: string;
+  hora: string;
+  notas?: string;
+  registradaPor?: string;   // quién la apuntó (en grupo)
+  privada?: boolean;        // derivado, no se guarda: en grupo, true si vive solo en este dispositivo
+}
+
 export interface ContactoEmergencia {
   id: string;
   nombre: string;

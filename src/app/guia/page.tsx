@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Pill, CheckSquare, Calendar,
   Lightbulb, Heart, MessageSquare, Users, User, Phone,
-  History, BookOpen, MessageCircle, Home,
+  History, BookOpen, MessageCircle, Home, Activity,
 } from "lucide-react";
 import { ChatInterface } from "@/components/asistente/ChatInterface";
 import type { PerfilFamiliar } from "@/types";
@@ -21,7 +21,7 @@ const secciones = [
       "Tu punto de partida cada mañana. Medicamentos, tareas y citas del día en un solo vistazo.",
     tips: [
       "Ábrela cada día para ver qué hay pendiente",
-      "Las secciones están ordenadas por prioridad: medicación, tareas y citas",
+      "Las secciones están ordenadas por prioridad: medicación, tareas, citas y mediciones",
       "Toca 'Ver historial' al pie de cada sección para revisar días pasados",
     ],
   },
@@ -67,8 +67,24 @@ const secciones = [
       "Anota visitas médicas, análisis y hospitalizaciones. La app te avisa si hay citas pasadas sin confirmar.",
     tips: [
       "Toca el check-circle para marcar una cita como realizada",
-      "Añade lugar y notas a cada cita para llevar la información a la consulta",
+      "Añade el lugar de la cita para llevar la información a la consulta",
       "El historial permite imprimirlo en A4 para el médico",
+    ],
+  },
+  {
+    emoji: "🩺",
+    bg: "bg-rose-100",
+    href: "/mediciones",
+    LinkIcono: Activity,
+    linkTexto: "Ve a Mediciones",
+    titulo: "Mediciones",
+    descripcion:
+      "Apunta la tensión, el azúcar, la temperatura, el peso, la saturación o el pulso, de tu familiar, tuyos o de otra persona.",
+    tips: [
+      "Elige a quién se le ha tomado cada medición y añade una nota si quieres (en ayunas, en reposo…)",
+      "En un grupo familiar, las de tu familiar se comparten; las tuyas o de otras personas se quedan solo en tu móvil (🔒), salvo que actives «Compartir con el grupo»",
+      "En la página de Mediciones verás un gráfico de cómo evoluciona cada una",
+      "La app no interpreta los valores: es un registro para enseñárselo al médico",
     ],
   },
   {
@@ -140,10 +156,11 @@ const secciones = [
     linkTexto: "Ve a Emergencias",
     titulo: "Emergencias",
     descripcion:
-      "Guarda los contactos clave y accede a ellos en segundos. El botón SOS rojo siempre está visible.",
+      "Guarda los contactos clave y accede a ellos en segundos. El botón SOS rojo te lleva directamente a tus contactos de emergencia y a los números 112/061 para que puedas llamar tú mismo.",
     tips: [
       "Añade el teléfono del médico, especialistas y familiares de confianza",
       "El botón SOS rojo aparece en todas las pantallas de la app",
+      "El SOS no llama, no avisa ni comparte tu ubicación de forma automática: es un acceso rápido para que llames tú",
       "En una emergencia real, llama siempre al 112",
     ],
   },
@@ -155,10 +172,10 @@ const secciones = [
     linkTexto: "Ve a Perfil",
     titulo: "Perfil",
     descripcion:
-      "Guarda los datos de tu familiar: nombre, edad, diagnóstico y notas importantes. La app los usa para personalizar la experiencia.",
+      "Guarda los datos de tu familiar: nombre, edad, diagnóstico, medicación habitual, médico de referencia, alergias y contactos de emergencia. La app los usa para personalizar la experiencia.",
     tips: [
       "Añade el nombre para que la app te llame por él en los mensajes",
-      "Anota el diagnóstico y las observaciones del médico para tenerlas siempre a mano",
+      "Anota el diagnóstico y la medicación habitual para tenerlos siempre a mano",
       "Los datos del perfil son privados y solo se guardan en tu dispositivo",
     ],
   },
@@ -174,7 +191,7 @@ const secciones = [
     tips: [
       "Filtra por medicación, tareas o citas usando las pestañas",
       "Ajusta el rango de fechas con el selector",
-      "Usa el botón de impresión para generar un PDF para el médico",
+      "El botón de impresión abre el diálogo del navegador; desde ahí puedes elegir 'Guardar como PDF' para el médico",
     ],
   },
 ];

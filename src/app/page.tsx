@@ -5,6 +5,7 @@ import { FileText, HeartHandshake } from "lucide-react";
 import { MedicacionSection } from "@/components/hoy/MedicacionSection";
 import { TareasSection } from "@/components/hoy/TareasSection";
 import { CitasSection } from "@/components/hoy/CitasSection";
+import { MedicionesSection } from "@/components/hoy/MedicionesSection";
 import { TarjetaGuia } from "@/components/hoy/TarjetaGuia";
 
 function LinkHistorial({ href, texto, claseColor }: { href: string; texto: string; claseColor: string }) {
@@ -92,6 +93,15 @@ export default function HoyPage() {
             href="/historial?tab=citas"
             texto="Ver historial de citas"
             claseColor="border-amber-300 text-amber-700"
+          />
+        </div>
+
+        <div id="mediciones" className="bg-rose-50 rounded-3xl p-4 border border-rose-100">
+          <MedicionesSection />
+          <LinkHistorial
+            href="/mediciones"
+            texto="Ver todas las mediciones y su evolución"
+            claseColor="border-rose-200 text-rose-600"
           />
         </div>
       </div>

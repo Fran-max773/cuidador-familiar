@@ -12,6 +12,7 @@ const rutas: Record<string, string> = {
   "/emergencias": "Emergencias",
   "/grupo":       "Grupo familiar",
   "/historial":   "Historial e impresión",
+  "/mediciones":  "Mediciones",
   "/guia":        "Guía de uso",
 };
 

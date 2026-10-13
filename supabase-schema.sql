@@ -85,3 +85,31 @@ CREATE POLICY "acceso_publico" ON citas       FOR ALL USING (true) WITH CHECK (t
 -- Activar realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE medicaciones, tareas, citas, perfil;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Migración 2026-10: Mediciones (tensión, azúcar, temperatura, peso, saturación, pulso)
+-- Ejecutar este bloque en el SQL Editor de Supabase.
+-- Los GRANT son necesarios para tablas nuevas a partir del 30-oct-2026.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS mediciones (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  grupo_id       uuid REFERENCES grupos(id) ON DELETE CASCADE,
+  tipo           text NOT NULL,
+  valor          numeric NOT NULL,
+  valor2         numeric,
+  persona        text NOT NULL DEFAULT '',
+  fecha          date NOT NULL,
+  hora           text NOT NULL,
+  notas          text DEFAULT '',
+  registrada_por text DEFAULT '',
+  creado_en      timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS mediciones_grupo_fecha ON mediciones (grupo_id, fecha DESC);
+
+ALTER TABLE mediciones ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "acceso_publico" ON mediciones FOR ALL USING (true) WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE mediciones TO anon, authenticated;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE mediciones;
+

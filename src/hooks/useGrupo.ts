@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Medicacion, Tarea, Cita } from "@/types";
+import type { Medicacion, Tarea, Cita, Medicion, PerfilFamiliar } from "@/types";
 
 export interface SesionGrupo {
   grupoId: string;
@@ -32,7 +32,7 @@ function generarCodigo(): string {
 }
 
 // Sube todos los datos locales a Supabase al crear un grupo
-async function migrarDatosLocales(grupoId: string) {
+async function migrarDatosLocales(grupoId: string, miNombre: string) {
   try {
     const meds: Medicacion[] = JSON.parse(localStorage.getItem("cf_medicaciones") ?? "[]");
     if (meds.length) {
@@ -81,6 +81,34 @@ async function migrarDatosLocales(grupoId: string) {
         }))
       );
     }
+
+    // Solo se suben las del familiar: las del cuidador u otras personas siguen privadas en el dispositivo
+    const mediciones: Medicion[] = JSON.parse(localStorage.getItem("cf_mediciones") ?? "[]");
+    let nombreFamiliar = "";
+    try { nombreFamiliar = (JSON.parse(localStorage.getItem("cf_perfil") ?? "{}") as PerfilFamiliar).nombre?.trim() ?? ""; } catch { /* sin perfil */ }
+    const familiar = nombreFamiliar || "Mi familiar";
+    const delFamiliar = mediciones.filter((m) => m.persona === familiar);
+    if (delFamiliar.length) {
+      const { error } = await supabase.from("mediciones").insert(
+        delFamiliar.map((m) => ({
+          id: m.id,
+          grupo_id: grupoId,
+          tipo: m.tipo,
+          valor: m.valor,
+          valor2: m.valor2 ?? null,
+          persona: m.persona,
+          registrada_por: miNombre,
+          fecha: m.fecha,
+          hora: m.hora,
+          notas: m.notas ?? "",
+        }))
+      );
+      // Ya están en el grupo: quitarlas del dispositivo para que no aparezcan duplicadas
+      if (!error) {
+        const subidas = new Set(delFamiliar.map((m) => m.id));
+        localStorage.setItem("cf_mediciones", JSON.stringify(mediciones.filter((m) => !subidas.has(m.id))));
+      }
+    }
   } catch {
     // La migración es best-effort: si falla no bloqueamos la creación del grupo
   }
@@ -114,7 +142,7 @@ export function useGrupo() {
       if (eMiembro) throw eMiembro;
 
       // Subir datos locales para que los familiares que se unan después los vean
-      await migrarDatosLocales(grupo.id);
+      await migrarDatosLocales(grupo.id, miNombre.trim());
 
       const s: SesionGrupo = {
         grupoId: grupo.id,
