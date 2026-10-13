@@ -125,7 +125,7 @@ export function MedicacionSection() {
           <span className="text-xl">💊</span>
           <h2 className="text-lg font-semibold text-gray-800">Medicación de hoy</h2>
         </div>
-        <Button variante="fantasma" tamaño="sm" onClick={abrirNuevo}>
+        <Button variante="fantasma" tamaño="sm" className="min-h-[44px]" onClick={abrirNuevo}>
           <Plus size={16} /> Añadir
         </Button>
       </div>
