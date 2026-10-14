@@ -85,7 +85,30 @@ const fromDbTarea = (r: any): Tarea => ({
   id: r.id, texto: r.texto, completada: r.completada, fecha: r.fecha,
   prioridad: r.prioridad ?? "normal",
   completadaPor: r.completada_por ?? "", asignadaA: r.asignada_a ?? "",
+  creadaPor: r.creada_por ?? "", descartada: r.descartada ?? false,
 });
+
+// Hasta cuántos días atrás se puede corregir el historial (lo más antiguo puede estar ya impreso para el médico)
+const DIAS_EDITABLES = 60;
+function limiteEdicion(): string {
+  const d = new Date(); d.setDate(d.getDate() - DIAS_EDITABLES);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+const esEditable = (fecha: string) => fecha >= limiteEdicion() && fecha <= hoyLocal();
+
+function ConfirmacionInline({ texto, onSi, onNo }: { texto: string; onSi: () => void; onNo: () => void }) {
+  return (
+    <div className="flex items-center justify-end gap-2 flex-wrap py-1.5 print:hidden">
+      <span className="text-sm text-gray-600">{texto}</span>
+      <button onClick={onNo} className="min-h-[44px] px-3 rounded-xl border border-beige-200 bg-beige-100 text-gray-700 text-sm">
+        No
+      </button>
+      <button onClick={onSi} className="min-h-[44px] px-3 rounded-xl bg-sage-500 text-white text-sm font-medium">
+        Sí
+      </button>
+    </div>
+  );
+}
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fromDbCita = (r: any): Cita => ({
   id: r.id, tipo: r.tipo, titulo: r.titulo, fecha: r.fecha,
@@ -133,10 +156,13 @@ function colorPct(pct: number) {
   return pct >= 80 ? "bg-sage-100 text-sage-700" : pct >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600";
 }
 
-function MesMedicacion({ med, mes, dias, abiertoInicial }: {
-  med: Medicacion; mes: string; dias: string[]; abiertoInicial: boolean;
+type ToggleToma = (medId: string, clave: string, tomar: boolean) => void;
+
+function MesMedicacion({ med, mes, dias, abiertoInicial, onToggleToma }: {
+  med: Medicacion; mes: string; dias: string[]; abiertoInicial: boolean; onToggleToma: ToggleToma;
 }) {
   const [abierto, setAbierto] = useState(abiertoInicial);
+  const [pendiente, setPendiente] = useState<string | null>(null); // clave "fecha_hora" a confirmar
   const tomaSet = new Set(med.completadasEn);
   const diasSet = new Set(dias);
   const tomadas = med.completadasEn.filter((k) => diasSet.has(k.split("_")[0])).length;
@@ -157,31 +183,58 @@ function MesMedicacion({ med, mes, dias, abiertoInicial }: {
       </button>
       {/* Plegado en pantalla, pero siempre visible al imprimir */}
       <div className={cn("space-y-1 pb-3", !abierto && "hidden print:block")}>
-        {[...dias].reverse().map((dia) => (
-          <div key={dia} className="flex items-center gap-3 text-sm">
-            <span className="w-12 text-gray-400 text-xs flex-shrink-0">{diaCorto(dia)}</span>
-            <div className="flex gap-2 flex-wrap">
-              {med.horas.map((hora) => {
-                const tomada = tomaSet.has(`${dia}_${hora}`);
-                return (
-                  <span key={hora} className={cn(
-                    "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
-                    tomada ? "bg-sage-100 text-sage-700" : "bg-red-50 text-red-500"
-                  )}>
-                    {tomada ? <Check size={10} /> : <X size={10} />}
-                    {hora}
-                  </span>
-                );
-              })}
+        {[...dias].reverse().map((dia) => {
+          const editable = esEditable(dia);
+          const clavePendiente = pendiente?.startsWith(`${dia}_`) ? pendiente : null;
+          return (
+            <div key={dia}>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="w-12 text-gray-400 text-xs flex-shrink-0">{diaCorto(dia)}</span>
+                <div className="flex gap-2 flex-wrap">
+                  {med.horas.map((hora) => {
+                    const clave = `${dia}_${hora}`;
+                    const tomada = tomaSet.has(clave);
+                    const clase = cn(
+                      "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
+                      tomada ? "bg-sage-100 text-sage-700" : "bg-red-50 text-red-500",
+                      pendiente === clave && "ring-2 ring-sage-400"
+                    );
+                    const contenido = <>{tomada ? <Check size={10} /> : <X size={10} />}{hora}</>;
+                    return editable ? (
+                      <button
+                        key={hora}
+                        onClick={() => setPendiente(pendiente === clave ? null : clave)}
+                        className="min-h-[36px] flex items-center"
+                        aria-label={`${tomada ? "Desmarcar" : "Marcar como tomada"} la toma de las ${hora} del ${diaCorto(dia)}`}
+                      >
+                        <span className={clase}>{contenido}</span>
+                      </button>
+                    ) : (
+                      <span key={hora} className={clase}>{contenido}</span>
+                    );
+                  })}
+                </div>
+              </div>
+              {clavePendiente && (
+                <ConfirmacionInline
+                  texto={tomaSet.has(clavePendiente)
+                    ? `¿Desmarcar la toma de las ${clavePendiente.split("_")[1]}?`
+                    : `¿Marcar como tomada la de las ${clavePendiente.split("_")[1]}?`}
+                  onNo={() => setPendiente(null)}
+                  onSi={() => { onToggleToma(med.id, clavePendiente, !tomaSet.has(clavePendiente)); setPendiente(null); }}
+                />
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function TarjetaMedicamento({ resumen, abiertoInicial }: { resumen: ResumenMed; abiertoInicial: boolean }) {
+function TarjetaMedicamento({ resumen, abiertoInicial, onToggleToma }: {
+  resumen: ResumenMed; abiertoInicial: boolean; onToggleToma: ToggleToma;
+}) {
   const [abierto, setAbierto] = useState(abiertoInicial);
   const { med, meses, tomadas, esperadas, pct } = resumen;
 
@@ -207,14 +260,16 @@ function TarjetaMedicamento({ resumen, abiertoInicial }: { resumen: ResumenMed; 
       </button>
       <div className={cn("px-4 pb-1", !abierto && "hidden print:block")}>
         {meses.map(([mes, dias], i) => (
-          <MesMedicacion key={mes} med={med} mes={mes} dias={dias} abiertoInicial={i === 0} />
+          <MesMedicacion key={mes} med={med} mes={mes} dias={dias} abiertoInicial={i === 0} onToggleToma={onToggleToma} />
         ))}
       </div>
     </div>
   );
 }
 
-function SeccionMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desde: string; hasta: string }) {
+function SeccionMedicacion({ meds, desde, hasta, onToggleToma }: {
+  meds: Medicacion[]; desde: string; hasta: string; onToggleToma: ToggleToma;
+}) {
   const hoy = hoyLocal();
   const resumenes = meds
     .map((m) => resumirMedicacion(m, desde, hasta, hoy))
@@ -230,10 +285,12 @@ function SeccionMedicacion({ meds, desde, hasta }: { meds: Medicacion[]; desde: 
         {resumenes.length === 1
           ? "Toca un mes para ver el detalle día a día."
           : `${resumenes.length} medicamentos. Toca uno para ver el detalle día a día.`}
+        {" "}¿Olvidaste anotar una toma? Tócala para corregirla (hasta {DIAS_EDITABLES} días atrás).
       </p>
       {resumenes.map((r) => (
         // key con el rango: al cambiar de período, los acordeones vuelven a su estado inicial
-        <TarjetaMedicamento key={`${r.med.id}-${desde}-${hasta}`} resumen={r} abiertoInicial={resumenes.length === 1} />
+        <TarjetaMedicamento key={`${r.med.id}-${desde}-${hasta}`} resumen={r}
+          abiertoInicial={resumenes.length === 1} onToggleToma={onToggleToma} />
       ))}
     </div>
   );
@@ -263,16 +320,72 @@ function MesPlegable({ titulo, resumen, abiertoInicial, children }: {
 }
 
 // ── Sección Tareas ────────────────────────────────────────────────────────────
-function SeccionTareas({ tareas, claveRango }: { tareas: Tarea[]; claveRango: string }) {
+type MarcarTarea = (t: Tarea, completada: boolean) => void;
+
+function FilaTareaHistorial({ t, onMarcar }: { t: Tarea; onMarcar: MarcarTarea }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const editable = esEditable(t.fecha);
+  const circulo = (
+    <span className={cn(
+      "w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center",
+      t.completada ? "bg-sage-500 text-white" : "border-2 border-gray-200",
+      confirmando && "ring-2 ring-sage-400"
+    )}>
+      {t.completada && <Check size={11} strokeWidth={3} />}
+    </span>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 text-sm">
+        <span className="w-12 text-gray-400 text-xs flex-shrink-0">{diaCorto(t.fecha)}</span>
+        {editable ? (
+          <button
+            onClick={() => setConfirmando((c) => !c)}
+            className="min-w-[36px] min-h-[36px] -mx-2 flex items-center justify-center flex-shrink-0"
+            aria-label={t.completada ? `Desmarcar: ${t.texto}` : `Marcar como hecha: ${t.texto}`}
+          >
+            {circulo}
+          </button>
+        ) : circulo}
+        <div className="flex-1 py-1">
+          <span className={cn("text-gray-800", (t.completada || t.descartada) && "line-through text-gray-400")}>
+            {t.texto}
+          </span>
+          {t.completada && t.completadaPor && (
+            <span className="text-xs text-sage-500 ml-2">({t.completadaPor})</span>
+          )}
+          {!t.completada && t.descartada && (
+            <span className="text-xs text-gray-400 ml-2">(descartada)</span>
+          )}
+        </div>
+      </div>
+      {confirmando && (
+        <ConfirmacionInline
+          texto={t.completada ? "¿Desmarcar esta tarea?" : "¿Marcar como hecha?"}
+          onNo={() => setConfirmando(false)}
+          onSi={() => { onMarcar(t, !t.completada); setConfirmando(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SeccionTareas({ tareas, claveRango, onMarcar }: { tareas: Tarea[]; claveRango: string; onMarcar: MarcarTarea }) {
   if (!tareas.length) return <p className="text-gray-400 text-center py-8">No hay tareas en este período.</p>;
 
   const meses = agruparPorMes([...tareas].sort((a,b) => b.fecha.localeCompare(a.fecha)));
   const completadas = tareas.filter(t => t.completada).length;
+  const descartadas = tareas.filter(t => !t.completada && t.descartada).length;
+  const pendientes = tareas.length - completadas - descartadas;
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-gray-500">
-        {completadas} completadas · {tareas.length - completadas} pendientes · {tareas.length} total
+        {completadas} completadas · {pendientes} pendientes{descartadas ? ` · ${descartadas} descartadas` : ""} · {tareas.length} total
+      </p>
+      <p className="text-xs text-gray-400 print:hidden">
+        ¿Olvidaste marcar alguna? Toca el círculo para corregirla (hasta {DIAS_EDITABLES} días atrás).
       </p>
       {meses.map(([mes, items], i) => (
         <MesPlegable
@@ -281,26 +394,8 @@ function SeccionTareas({ tareas, claveRango }: { tareas: Tarea[]; claveRango: st
           resumen={`${items.filter(t => t.completada).length}/${items.length} completadas`}
           abiertoInicial={i === 0}
         >
-          <div className="space-y-1.5">
-            {items.map((t) => (
-              <div key={t.id} className="flex items-start gap-3 text-sm">
-                <span className="w-12 text-gray-400 text-xs flex-shrink-0 pt-0.5">{diaCorto(t.fecha)}</span>
-                <span className={cn(
-                  "w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5",
-                  t.completada ? "bg-sage-500 text-white" : "border-2 border-gray-200"
-                )}>
-                  {t.completada && <Check size={11} strokeWidth={3} />}
-                </span>
-                <div className="flex-1">
-                  <span className={cn("text-gray-800", t.completada && "line-through text-gray-400")}>
-                    {t.texto}
-                  </span>
-                  {t.completada && t.completadaPor && (
-                    <span className="text-xs text-sage-500 ml-2">({t.completadaPor})</span>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="space-y-0.5">
+            {items.map((t) => <FilaTareaHistorial key={t.id} t={t} onMarcar={onMarcar} />)}
           </div>
         </MesPlegable>
       ))}
@@ -479,8 +574,8 @@ function CalendarioTareas({ tareas, calDesde, calHasta }: { tareas: Tarea[]; cal
         <CalendarioMes key={`${año}-${mes}`} año={año} mes={mes}
           renderDia={(fecha) => (porFecha[fecha] ?? []).map((t) => (
             <div key={t.id} className={cn("text-[9px] leading-tight truncate",
-              t.completada ? "text-green-700 line-through" : "text-gray-700")}>
-              {t.completada ? "✓" : "·"} {t.texto}
+              t.completada ? "text-green-700 line-through" : t.descartada ? "text-gray-400 line-through" : "text-gray-700")}>
+              {t.completada ? "✓" : t.descartada ? "–" : "·"} {t.texto}
             </div>
           ))}
         />
@@ -602,6 +697,41 @@ export default function HistorialPage() {
       })();
     }
   }, [sesion?.grupoId, desde, hasta]);
+
+  // ── Corrección desde el historial ──
+  // Al marcar o desmarcar, la tarea deja de estar "descartada" (vuelve a contar como hecha o pendiente)
+  const marcarTarea: MarcarTarea = async (t, completada) => {
+    const cambios = { completada, descartada: false, completadaPor: completada ? (sesion?.miNombre ?? "") : "" };
+    setTareas((prev) => prev.map((x) => x.id === t.id ? { ...x, ...cambios } : x));
+    if (!sesion) {
+      const todas: Tarea[] = JSON.parse(localStorage.getItem("cf_tareas") ?? "[]");
+      localStorage.setItem("cf_tareas", JSON.stringify(todas.map((x) => x.id === t.id ? { ...x, ...cambios } : x)));
+      return;
+    }
+    await supabase.from("tareas")
+      .update({ completada, descartada: false, completada_por: cambios.completadaPor })
+      .eq("id", t.id).eq("grupo_id", sesion.grupoId);
+  };
+
+  const toggleToma: ToggleToma = async (medId, clave, tomar) => {
+    const aplicar = (lista: string[]) =>
+      tomar ? (lista.includes(clave) ? lista : [...lista, clave]) : lista.filter((k) => k !== clave);
+    setMeds((prev) => prev.map((m) => m.id === medId ? { ...m, completadasEn: aplicar(m.completadasEn) } : m));
+    if (!sesion) {
+      const todas: Medicacion[] = JSON.parse(localStorage.getItem("cf_medicaciones") ?? "[]");
+      localStorage.setItem("cf_medicaciones", JSON.stringify(
+        todas.map((m) => m.id === medId ? { ...m, completadasEn: aplicar(m.completadasEn) } : m)
+      ));
+      return;
+    }
+    // Releer antes de escribir: el array entero se sobrescribe y otro familiar puede haber marcado tomas
+    const { data } = await supabase.from("medicaciones").select("completadas_en")
+      .eq("id", medId).eq("grupo_id", sesion.grupoId).single();
+    const nuevas = aplicar(data?.completadas_en ?? []);
+    await supabase.from("medicaciones").update({ completadas_en: nuevas })
+      .eq("id", medId).eq("grupo_id", sesion.grupoId);
+    setMeds((prev) => prev.map((m) => m.id === medId ? { ...m, completadasEn: nuevas } : m));
+  };
 
   const perfil = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -770,8 +900,8 @@ export default function HistorialPage() {
               </>
             ) : (
               <>
-                {tab === "tareas"     && <SeccionTareas tareas={tareas} claveRango={`${desde}-${hasta}`} />}
-                {tab === "medicacion" && <SeccionMedicacion meds={meds} desde={desde} hasta={hasta} />}
+                {tab === "tareas"     && <SeccionTareas tareas={tareas} claveRango={`${desde}-${hasta}`} onMarcar={marcarTarea} />}
+                {tab === "medicacion" && <SeccionMedicacion meds={meds} desde={desde} hasta={hasta} onToggleToma={toggleToma} />}
                 {tab === "citas"      && <SeccionCitas citas={citas} claveRango={`${desde}-${hasta}`} />}
               </>
             )}
