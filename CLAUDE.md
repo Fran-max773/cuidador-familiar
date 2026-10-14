@@ -179,6 +179,9 @@ No hay id de miembro en la sesión (`cf_grupo_sesion` guarda `miNombre`). El nom
 ### Historial: ventana de meses naturales
 `historial/page.tsx` usa una sola ventana de N meses que termina en `mesFin` (por defecto el actual), con flechas ‹ › que la mueven N meses y "Volver a este mes"; la comparten Lista y Calendario (ya no hay selectores Desde/Hasta). Medicación es un acordeón (medicamento → meses) y Tareas/Citas tienen meses plegables (solo el más reciente abierto); al imprimir todo sale desplegado (`hidden print:block`). **Fechas siempre en hora local** (`hoyLocal`, `pad2`): `toISOString()` desplazaba cada día al anterior en España.
 
+### Tareas pendientes entre días y corrección desde el Historial (2026-10-14)
+Una tarea sin hacer **no desaparece al cambiar de día**: `useTareas` carga 60 días (`DIAS_PENDIENTES`) y expone `pendientesAnteriores` (fecha < hoy, no completada, no `descartada`); Hoy las muestra en el bloque "Pendientes de días anteriores" con Hecha / Descartar. Columna nueva `tareas.descartada boolean` (ya creada en Supabase, SQL en `supabase-schema.sql`). El Historial permite tocar una tarea o una toma de medicación (hasta 60 días atrás, `esEditable`) y confirmar "¿Marcar como hecha/tomada?"; la toma relee `completadas_en` de la BD antes de escribir, porque el array entero se sobrescribe. Botón "+ Añadir" unificado en `components/ui/BotonAnadir.tsx` (Medicación, Citas, Mediciones).
+
 ### Paleta `warm` incompleta — cuidado con los degradados
 `tailwind.config.ts` solo define `warm.50/100/200/300/500/600` (**no existe `warm-400`**). Usar una clase con un tono no definido no da error visible: Tailwind simplemente no genera la utilidad y el degradado se desvanece a transparente. Si se usa `warm` en un `bg-gradient-to-*`, verificar visualmente el resultado.
 
@@ -248,8 +251,8 @@ Fran quiere crear una cuenta de Instagram (aún no creada — requiere que él l
 ### ✅ Tabla `mediciones` creada en Supabase (2026-10-13)
 Hecho por Claude desde el SQL Editor del dashboard con Claude in Chrome (sesión de Fran ya iniciada; la clave anon no permite DDL, así que esa es la vía para futuras migraciones). El SQL se cargó en el editor con `window.monaco.editor.getEditors()[0].setValue(sql)` y luego se pulsó Run. Verificado con la clave anon: SELECT 200, INSERT 201, DELETE 200 (con una fila de prueba sin `grupo_id`, ya borrada).
 
-### Ampliar corrección de tareas más allá de 3 días
-**Por qué:** `useTareas.ts` solo expone `tareasRecientes` (3 días) para el panel de corrección. Los usuarios no pueden corregir olvidos de más de 3 días atrás.
+### ✅ HECHO (2026-10-14): Ampliar corrección de tareas más allá de 3 días
+**Por qué (histórico):** `useTareas.ts` solo expone `tareasRecientes` (3 días) para el panel de corrección. Los usuarios no pueden corregir olvidos de más de 3 días atrás.
 **Cómo:** Ampliar la ventana a 60 días igual que `useMedicacion.ts` (que ya expone `medicacionesRecientes`). Actualizar el panel de corrección en `TareasSection.tsx` para mostrar selector de fecha libre igual que el de medicación.
 
 ### Persistir perfil en Supabase para grupos
