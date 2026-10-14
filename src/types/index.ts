@@ -17,6 +17,7 @@ export interface Tarea {
   completadaPor?: string;
   asignadaA?: string;
   creadaPor?: string;
+  descartada?: boolean;     // de un día pasado, ya no hace falta hacerla (sigue en el historial)
 }
 
 export interface Cita {

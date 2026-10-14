@@ -8,17 +8,16 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-function diasAnteriores(n: number) {
+const MAX_PENDIENTES_VISIBLES = 5;
+
+function etiquetaDiaPasado(fecha: string) {
   const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (i + 1));
-    const fecha = d.toISOString().split("T")[0];
-    const etiqueta = i === 0
-      ? `Ayer · ${d.getDate()} ${meses[d.getMonth()]}`
-      : `Hace ${i + 1} días · ${d.getDate()} ${meses[d.getMonth()]}`;
-    return { fecha, etiqueta };
-  });
+  const [a, m, d] = fecha.split("-").map(Number);
+  const dia = new Date(a, m - 1, d);
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const dias = Math.round((hoy.getTime() - dia.getTime()) / 86400000);
+  const corta = `${d} ${meses[m - 1]}`;
+  return dias === 1 ? `Ayer · ${corta}` : `Hace ${dias} días · ${corta}`;
 }
 
 // Fila de pastillas para elegir a quién se asigna una tarea ("Libre" + cada miembro)
@@ -55,7 +54,7 @@ function SelectorAsignacion({
 }
 
 export function TareasSection() {
-  const { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad, archivar } = useTareas();
+  const { tareas, pendientesAnteriores, agregar, toggleCompletar, descartar, editar, eliminar, togglePrioridad, archivar } = useTareas();
   const miembros = useMiembros();
   const miNombre = getSesion()?.miNombre ?? "";
   const [nuevaTarea, setNuevaTarea] = useState("");
@@ -63,8 +62,7 @@ export function TareasSection() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [textoEdicion, setTextoEdicion] = useState("");
   const [asignacionEdicion, setAsignacionEdicion] = useState("");
-  const [correccionAbierta, setCorreccionAbierta] = useState(false);
-  const hoy = new Date().toISOString().split("T")[0];
+  const [verTodasPendientes, setVerTodasPendientes] = useState(false);
 
   const handleAgregar = () => {
     if (!nuevaTarea.trim()) return;
@@ -255,50 +253,50 @@ export function TareasSection() {
         </div>
       )}
 
-      {/* ── Panel de corrección de días anteriores ── */}
-      {tareasRecientes.some((t) => !t.completada && t.fecha < hoy) && (
-        <div className="pt-1">
-          <button
-            onClick={() => setCorreccionAbierta((v) => !v)}
-            className="w-full flex items-center justify-center gap-2 text-base text-amber-600 hover:text-amber-700 font-medium py-3 transition-colors"
-          >
+      {/* ── Tareas de días anteriores que nadie hizo: siguen pendientes hasta hacerlas o descartarlas ── */}
+      {pendientesAnteriores.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-800 mb-1">
             <Clock size={16} />
-            ¿Olvidaste completar alguna tarea?
-            <ChevronDown
-              size={16}
-              className={cn("transition-transform", correccionAbierta && "rotate-180")}
-            />
-          </button>
-
-          {correccionAbierta && (
-            <div className="mt-2 space-y-4 border-t border-beige-100 pt-3">
-              {diasAnteriores(3).map(({ fecha, etiqueta }) => {
-                const pendientesDelDia = tareasRecientes.filter(
-                  (t) => t.fecha === fecha && !t.completada
-                );
-                if (pendientesDelDia.length === 0) return null;
-                return (
-                  <div key={fecha}>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                      {etiqueta}
-                    </p>
-                    <div className="space-y-1.5">
-                      {pendientesDelDia.map((tarea) => (
-                        <button
-                          key={tarea.id}
-                          onClick={() => toggleCompletar(tarea.id)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-beige-50 hover:bg-beige-100 text-gray-600 transition-all text-left text-sm"
-                        >
-                          <span className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center border-2 border-sage-300" />
-                          <span className="flex-1 font-medium">{tarea.texto}</span>
-                          <span className="text-xs text-gray-400 flex-shrink-0">Marcar hecha</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            Pendientes de días anteriores ({pendientesAnteriores.length})
+          </p>
+          <p className="text-xs text-amber-700/80 mb-3">
+            Márcalas como hechas o descártalas si ya no hace falta hacerlas.
+          </p>
+          <div className="space-y-2">
+            {(verTodasPendientes ? pendientesAnteriores : pendientesAnteriores.slice(0, MAX_PENDIENTES_VISIBLES)).map((tarea) => (
+              <div key={tarea.id} className="flex items-center gap-2 bg-white rounded-xl border border-beige-200 pl-1 pr-2">
+                <button
+                  onClick={() => toggleCompletar(tarea.id)}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
+                  aria-label={`Marcar como hecha: ${tarea.texto}`}
+                >
+                  <span className="w-6 h-6 rounded-full border-2 border-sage-300 hover:bg-sage-100 transition-colors" />
+                </button>
+                <div className="flex-1 min-w-0 py-2">
+                  <p className="text-gray-800 text-sm font-medium">{tarea.texto}</p>
+                  <p className="text-xs text-gray-400">
+                    {etiquetaDiaPasado(tarea.fecha)}
+                    {tarea.asignadaA ? ` · Para: ${tarea.asignadaA}` : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => descartar(tarea.id)}
+                  className="min-h-[44px] px-2 text-xs text-gray-400 hover:text-gray-600 flex-shrink-0"
+                >
+                  Descartar
+                </button>
+              </div>
+            ))}
+          </div>
+          {pendientesAnteriores.length > MAX_PENDIENTES_VISIBLES && (
+            <button
+              onClick={() => setVerTodasPendientes((v) => !v)}
+              className="w-full min-h-[44px] flex items-center justify-center gap-1 text-sm text-amber-700 font-medium mt-1"
+            >
+              {verTodasPendientes ? "Ver menos" : `Ver todas (${pendientesAnteriores.length})`}
+              <ChevronDown size={16} className={cn("transition-transform", verTodasPendientes && "rotate-180")} />
+            </button>
           )}
         </div>
       )}

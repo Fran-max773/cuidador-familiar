@@ -5,10 +5,16 @@ import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
 import type { Tarea } from "@/types";
 
-const HOY = new Date().toISOString().split("T")[0];
-function hace3diasStr() {
-  const d = new Date(); d.setDate(d.getDate() - 3);
-  return d.toISOString().split("T")[0];
+// Fechas en hora local: toISOString() pasa a UTC y entre las 00:00 y las 02:00 daría el día anterior
+function fechaLocal(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+const HOY = fechaLocal(new Date());
+// Días hacia atrás en los que se recuperan tareas sin hacer
+export const DIAS_PENDIENTES = 60;
+function inicioVentanaStr() {
+  const d = new Date(); d.setDate(d.getDate() - DIAS_PENDIENTES);
+  return fechaLocal(d);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,6 +28,7 @@ function fromDb(r: any): Tarea {
     completadaPor: r.completada_por ?? "",
     asignadaA: r.asignada_a ?? "",
     creadaPor: r.creada_por ?? "",
+    descartada: r.descartada ?? false,
   };
 }
 
@@ -46,7 +53,7 @@ export function useTareas() {
         .from("tareas")
         .select("*")
         .eq("grupo_id", sesion.grupoId)
-        .gte("fecha", hace3diasStr())
+        .gte("fecha", inicioVentanaStr())
         .lte("fecha", HOY);
       setTareasRemoto((data ?? []).map(fromDb));
     };
@@ -77,9 +84,20 @@ export function useTareas() {
   const tareas = (sesion ? tareasRemoto : tareasLocal)
     .filter((t) => t.fecha === HOY && !ocultas.includes(t.id));
 
-  const tareasRecientes = sesion
-    ? tareasRemoto
-    : tareasLocal.filter((t) => t.fecha >= hace3diasStr() && t.fecha <= HOY);
+  // Tareas de días pasados (últimos 60) que nadie hizo ni descartó: siguen pendientes
+  const pendientesAnteriores = (sesion ? tareasRemoto : tareasLocal)
+    .filter((t) => t.fecha < HOY && t.fecha >= inicioVentanaStr() && !t.completada && !t.descartada)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+  const descartar = async (id: string) => {
+    if (!sesion) {
+      setTareasLocal((prev) => prev.map((t) => t.id === id ? { ...t, descartada: true } : t));
+      return;
+    }
+    setTareasRemoto((p) => p.map((t) => t.id === id ? { ...t, descartada: true } : t));
+    await supabase.from("tareas").update({ descartada: true })
+      .eq("id", id).eq("grupo_id", sesion.grupoId);
+  };
 
   const agregar = async (texto: string, prioridad: Tarea["prioridad"] = "normal", asignadaA = "") => {
     if (!sesion) {
@@ -158,5 +176,5 @@ export function useTareas() {
       .eq("id", id).eq("grupo_id", sesion.grupoId);
   };
 
-  return { tareas, tareasRecientes, agregar, toggleCompletar, editar, eliminar, togglePrioridad, archivar };
+  return { tareas, pendientesAnteriores, agregar, toggleCompletar, descartar, editar, eliminar, togglePrioridad, archivar };
 }
