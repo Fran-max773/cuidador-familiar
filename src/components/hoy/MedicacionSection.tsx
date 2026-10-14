@@ -5,6 +5,7 @@ import type { Medicacion } from "@/types";
 import { useMedicacion } from "@/hooks/useMedicacion";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { BotonAnadir } from "@/components/ui/BotonAnadir";
 import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 
@@ -125,9 +126,7 @@ export function MedicacionSection() {
           <span className="text-xl">💊</span>
           <h2 className="text-lg font-semibold text-gray-800">Medicación de hoy</h2>
         </div>
-        <Button variante="fantasma" tamaño="sm" className="min-h-[44px]" onClick={abrirNuevo}>
-          <Plus size={16} /> Añadir
-        </Button>
+        <BotonAnadir color="sky" onClick={abrirNuevo} />
       </div>
 
       {medicaciones.length === 0 ? (

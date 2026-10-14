@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
-import { Plus, Trash2, MapPin, Check, Clock } from "lucide-react";
+import { Trash2, MapPin, Check, Clock } from "lucide-react";
 import { useCitas } from "@/hooks/useCitas";
 import type { Cita } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { BotonAnadir } from "@/components/ui/BotonAnadir";
 import { Modal } from "@/components/ui/Modal";
 import { cn, formatearFechaCorta, diasHasta } from "@/lib/utils";
 
@@ -51,9 +52,7 @@ export function CitasSection() {
           <span className="text-xl">🗓️</span>
           <h2 className="text-lg font-semibold text-gray-800">Próximas citas</h2>
         </div>
-        <Button variante="fantasma" tamaño="sm" className="min-h-[44px]" onClick={() => setModalAbierto(true)}>
-          <Plus size={16} /> Añadir
-        </Button>
+        <BotonAnadir color="amber" onClick={() => setModalAbierto(true)} />
       </div>
 
       {citasHoy.length > 0 && (

@@ -1,9 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import { useMediciones } from "@/hooks/useMediciones";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { BotonAnadir } from "@/components/ui/BotonAnadir";
 import { ModalMedicion } from "@/components/mediciones/ModalMedicion";
 import { FilaMedicion } from "@/components/mediciones/FilaMedicion";
 
@@ -19,9 +18,7 @@ export function MedicionesSection() {
           <span className="text-xl">🩺</span>
           <h2 className="text-lg font-semibold text-gray-800">Mediciones</h2>
         </div>
-        <Button variante="fantasma" tamaño="sm" className="min-h-[44px]" onClick={() => setModalAbierto(true)}>
-          <Plus size={16} /> Añadir
-        </Button>
+        <BotonAnadir color="rose" onClick={() => setModalAbierto(true)} />
       </div>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
