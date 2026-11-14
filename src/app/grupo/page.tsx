@@ -6,6 +6,11 @@ import { useGrupo } from "@/hooks/useGrupo";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
+// Interruptor de los grupos familiares. El proyecto de Supabase está pausado desde el 13-nov-2026
+// (Fran lo usa para otra app y el plan gratuito solo admite 2). Para reactivar los grupos:
+// reanudar el proyecto en supabase.com y poner esto en true.
+const GRUPOS_DISPONIBLES = false;
+
 export default function GrupoPage() {
   const router = useRouter();
   const { sesion, cargando, error, crearGrupo, unirseAGrupo, salirDelGrupo, cambiarNombre } = useGrupo();
@@ -136,6 +141,26 @@ export default function GrupoPage() {
         >
           <LogOut size={16} /> Salir del grupo
         </button>
+      </div>
+    );
+  }
+
+  // ── Grupos no disponibles por ahora ─────────────────────────────────────────
+  if (!GRUPOS_DISPONIBLES) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl px-5 py-4 bg-gradient-to-br from-sky-50 to-sage-50 border border-sky-100">
+          <p className="text-sky-700 font-semibold mb-0.5">Grupo familiar</p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Compartir los cuidados con otros familiares no está disponible por ahora. Volveremos a activarlo más adelante.
+          </p>
+        </div>
+        <Card>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Mientras tanto, la app sigue funcionando con normalidad en este dispositivo: tus tareas,
+            medicación, citas y mediciones se guardan aquí.
+          </p>
+        </Card>
       </div>
     );
   }
