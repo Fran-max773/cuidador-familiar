@@ -6,6 +6,7 @@ import { useGrupo, getSesionGuardada, type SesionGrupo } from "@/hooks/useGrupo"
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { SolicitarGrupo } from "@/components/grupo/SolicitarGrupo";
+import { RecuperarDatosGrupo } from "@/components/grupo/RecuperarDatosGrupo";
 import { GRUPOS_DISPONIBLES } from "@/lib/grupoConfig";
 
 export default function GrupoPage() {
@@ -164,6 +165,7 @@ export default function GrupoPage() {
             </p>
           </Card>
         )}
+        {grupoEnPausa && <RecuperarDatosGrupo grupoId={grupoEnPausa.grupoId} />}
         {!grupoEnPausa && (
           <Card>
             <p className="text-sm text-gray-600 leading-relaxed">

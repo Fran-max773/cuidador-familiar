@@ -19,7 +19,7 @@ function inicioVentanaStr() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fromDb(r: any): Tarea {
+export function fromDb(r: any): Tarea {
   return {
     id: r.id,
     texto: r.texto,

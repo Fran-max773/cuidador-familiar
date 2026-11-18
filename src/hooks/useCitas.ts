@@ -13,7 +13,7 @@ function hace7dias() {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fromDb(r: any): Cita {
+export function fromDb(r: any): Cita {
   return {
     id: r.id, tipo: r.tipo, titulo: r.titulo,
     fecha: r.fecha, hora: r.hora,

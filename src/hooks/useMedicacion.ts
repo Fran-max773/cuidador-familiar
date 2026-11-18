@@ -14,7 +14,7 @@ function haceNDiasStr(n: number) {
 function clave(fecha: string, hora: string) { return `${fecha}_${hora}`; }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fromDb(r: any): Medicacion {
+export function fromDb(r: any): Medicacion {
   return {
     id: r.id,
     nombre: r.nombre,

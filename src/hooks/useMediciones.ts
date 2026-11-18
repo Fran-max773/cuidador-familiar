@@ -8,7 +8,7 @@ import { ordenarRecientesPrimero } from "@/lib/mediciones";
 import type { Medicion } from "@/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fromDb(r: any): Medicion {
+export function fromDb(r: any): Medicion {
   return {
     id: r.id, tipo: r.tipo,
     valor: Number(r.valor),
