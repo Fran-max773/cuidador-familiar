@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { SosButton } from "@/components/layout/SosButton";
+import { AvisoGrupo } from "@/components/layout/AvisoGrupo";
 
 const GA_MEASUREMENT_ID = "G-S05X2D6JH8";
 
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Header />
         <main className="max-w-2xl mx-auto px-4 pt-6 pb-32 min-h-screen">
+          <AvisoGrupo />
           {children}
         </main>
         <SosButton />

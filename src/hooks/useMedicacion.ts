@@ -3,6 +3,7 @@ import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
+import { avisarFalloGrupo } from "@/lib/grupoConfig";
 import type { Medicacion } from "@/types";
 
 function hoyStr() { return new Date().toISOString().split("T")[0]; }
@@ -39,12 +40,13 @@ export function useMedicacion() {
     const hoy = hoyStr();
 
     const cargar = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("medicaciones")
         .select("*")
         .eq("grupo_id", sesion.grupoId)
         .lte("fecha_inicio", hoy)
         .gte("fecha_fin", haceNDiasStr(60)); // carga últimos 60 días para corrección
+      if (error) { avisarFalloGrupo(error); return; }
       setMedicacionesRemoto((data ?? []).map(fromDb));
     };
     cargar();

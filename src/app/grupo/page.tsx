@@ -1,19 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Plus, LogIn, Copy, Check, LogOut, Crown, Pencil } from "lucide-react";
-import { useGrupo } from "@/hooks/useGrupo";
+import { useGrupo, getSesionGuardada, type SesionGrupo } from "@/hooks/useGrupo";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-
-// Interruptor de los grupos familiares. El proyecto de Supabase está pausado desde el 13-nov-2026
-// (Fran lo usa para otra app y el plan gratuito solo admite 2). Para reactivar los grupos:
-// reanudar el proyecto en supabase.com y poner esto en true.
-const GRUPOS_DISPONIBLES = false;
+import { SolicitarGrupo } from "@/components/grupo/SolicitarGrupo";
+import { GRUPOS_DISPONIBLES } from "@/lib/grupoConfig";
 
 export default function GrupoPage() {
   const router = useRouter();
   const { sesion, cargando, error, crearGrupo, unirseAGrupo, salirDelGrupo, cambiarNombre } = useGrupo();
+  // Grupo al que pertenecía este dispositivo antes de desactivar los grupos (para explicárselo)
+  const [grupoEnPausa, setGrupoEnPausa] = useState<SesionGrupo | null>(null);
+  useEffect(() => { if (!GRUPOS_DISPONIBLES) setGrupoEnPausa(getSesionGuardada()); }, []);
 
   const [modo, setModo] = useState<"menu" | "crear" | "unirse">("menu");
   const [miNombre, setMiNombre] = useState("");
@@ -155,12 +155,24 @@ export default function GrupoPage() {
             Compartir los cuidados con otros familiares no está disponible por ahora. Volveremos a activarlo más adelante.
           </p>
         </div>
-        <Card>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Mientras tanto, la app sigue funcionando con normalidad en este dispositivo: tus tareas,
-            medicación, citas y mediciones se guardan aquí.
-          </p>
-        </Card>
+        {grupoEnPausa && (
+          <Card className="bg-warm-50 border-warm-200">
+            <p className="text-sm text-warm-800 leading-relaxed">
+              <span className="font-semibold">Tu grupo {grupoEnPausa.codigo} está en pausa.</span>{" "}
+              Lo que apuntasteis en él no se ha perdido: está guardado y volverás a verlo cuando se reactive.
+              Mientras tanto, ves y apuntas lo de este dispositivo.
+            </p>
+          </Card>
+        )}
+        {!grupoEnPausa && (
+          <Card>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Mientras tanto, la app sigue funcionando con normalidad en este dispositivo: tus tareas,
+              medicación, citas y mediciones se guardan aquí.
+            </p>
+          </Card>
+        )}
+        <SolicitarGrupo />
       </div>
     );
   }

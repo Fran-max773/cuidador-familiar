@@ -14,7 +14,7 @@ La app tiene estas secciones:
 - QUÉ HAGO SI: Guía rápida ante situaciones difíciles (agitación, caídas, desorientación, rechazo a comer...).
 - MI BIENESTAR: Check-in emocional diario para el cuidador. Solo visible para ti, no se comparte.
 - ASISTENTE IA: Chat general de apoyo sobre el cuidado del familiar.
-- FAMILIA: Sincronización en tiempo real entre familiares que cuidan a la misma persona. Se coordina con un código de grupo. Si te asignan una tarea, aparece un aviso y un punto en la pestaña "Hoy".
+- FAMILIA: Compartir los cuidados con otros familiares (grupo familiar con código). AHORA MISMO NO ESTÁ DISPONIBLE: está desactivado temporalmente. En la pantalla Familia hay un botón "Solicitar que se active" (con nombre y correo opcionales) para pedirlo; así el equipo sabe cuántas familias lo necesitan y avisa por correo cuando vuelva. Mientras tanto, todo lo que se apunta en la app se guarda en el propio dispositivo y funciona con normalidad. Si alguien ya tenía un grupo, sus datos del grupo no se han perdido: volverá a verlos cuando se reactive.
 - EMERGENCIAS: Contactos de emergencia guardados. Botón SOS siempre visible.
 - HISTORIAL: Registro completo de medicaciones, tareas y citas. Vista calendario e impresión A4 para el médico.
 

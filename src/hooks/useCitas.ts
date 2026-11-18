@@ -3,6 +3,7 @@ import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
+import { avisarFalloGrupo } from "@/lib/grupoConfig";
 import type { Cita } from "@/types";
 
 function hoyStr() { return new Date().toISOString().split("T")[0]; }
@@ -33,10 +34,11 @@ export function useCitas() {
     if (!sesion) return;
 
     const cargar = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("citas").select("*").eq("grupo_id", sesion.grupoId)
         .gte("fecha", hace7dias())          // incluye últimos 7 días
         .order("fecha").order("hora");
+      if (error) { avisarFalloGrupo(error); return; }
       setCitasRemoto((data ?? []).map(fromDb));
     };
     cargar();

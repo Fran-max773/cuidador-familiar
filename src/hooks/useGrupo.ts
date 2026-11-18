@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Medicacion, Tarea, Cita, Medicion, PerfilFamiliar } from "@/types";
+import { GRUPOS_DISPONIBLES } from "@/lib/grupoConfig";
 
 export interface SesionGrupo {
   grupoId: string;
@@ -12,7 +13,14 @@ export interface SesionGrupo {
 
 const CLAVE = "cf_grupo_sesion";
 
+// Sesión de grupo activa. Con los grupos desactivados devuelve null y toda la app trabaja en local.
 export function getSesion(): SesionGrupo | null {
+  if (!GRUPOS_DISPONIBLES) return null;
+  return getSesionGuardada();
+}
+
+// Sesión guardada en el dispositivo, esté o no activa (para avisar de que el grupo está en pausa)
+export function getSesionGuardada(): SesionGrupo | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(CLAVE);

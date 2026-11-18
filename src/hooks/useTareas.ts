@@ -3,6 +3,7 @@ import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
+import { avisarFalloGrupo } from "@/lib/grupoConfig";
 import type { Tarea } from "@/types";
 
 // Fechas en hora local: toISOString() pasa a UTC y entre las 00:00 y las 02:00 daría el día anterior
@@ -49,12 +50,13 @@ export function useTareas() {
     if (!sesion) return;
 
     const cargar = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("tareas")
         .select("*")
         .eq("grupo_id", sesion.grupoId)
         .gte("fecha", inicioVentanaStr())
         .lte("fecha", HOY);
+      if (error) { avisarFalloGrupo(error); return; }
       setTareasRemoto((data ?? []).map(fromDb));
     };
     cargar();

@@ -3,6 +3,7 @@ import { useState, useEffect, useId } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { supabase } from "@/lib/supabase";
 import { getSesion } from "./useGrupo";
+import { avisarFalloGrupo } from "@/lib/grupoConfig";
 import { ordenarRecientesPrimero } from "@/lib/mediciones";
 import type { Medicion } from "@/types";
 
@@ -39,7 +40,7 @@ export function useMediciones() {
         .order("fecha", { ascending: false }).order("hora", { ascending: false })
         .limit(2000);
       if (e) {
-        console.error("Error al cargar mediciones:", e);
+        avisarFalloGrupo(e);
         setError("No se han podido cargar las mediciones del grupo.");
       } else {
         setRemoto((data ?? []).map(fromDb));

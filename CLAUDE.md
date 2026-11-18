@@ -262,3 +262,18 @@ Hecho por Claude desde el SQL Editor del dashboard con Claude in Chrome (sesión
 ### Reconexión de Supabase Realtime
 **Por qué:** Los hooks suscriben al canal Realtime pero no gestionan errores ni reconexión. En conexión intermitente (móvil) los cambios de otros miembros no se reciben.
 **Cómo:** Añadir handler de error en `channel.subscribe()` con reconexión exponencial. Probar con DevTools → Network → Offline/Online.
+
+## 14-nov-2026: grupos familiares DESACTIVADOS (aviso en la pantalla "Familia")
+- **Causa:** el 13-nov se pausó el proyecto de Supabase de esta app (el plan gratuito admite 2 proyectos y se necesitaba el hueco para Quinielista, ver `C:\Users\fcorg\Desktop\Apps\Quiniela\CLAUDE.md`). La dirección del proyecto dejó de resolverse y el workflow "Keep Supabase project alive" empezó a fallar (13 y 14-nov).
+- **Hecho (Fran, OK):** workflow de GitHub **desactivado** (`disabled_manually`; reactivar con `gh workflow enable "Keep Supabase project alive" --repo Fran-max773/cuidador-familiar`) y aviso en `/grupo` (commit 82896fa, desplegado en Vercel): "Compartir los cuidados con otros familiares no está disponible por ahora".
+- **Para reactivar los grupos algún día:** reanudar el proyecto en supabase.com (hace falta tener libre un hueco gratuito, o pasar a Pro) y poner `GRUPOS_DISPONIBLES = true` en `src/app/grupo/page.tsx`; después `git push` (despliega solo) y reactivar el workflow.
+- Sin grupo la app funciona en local como siempre; el resto de pestañas no se han tocado.
+
+## 18-nov-2026: modo local forzado + "Solicitar que se active" el grupo
+- **Problema:** los dispositivos que YA estaban en un grupo (p. ej. el de Fran) seguían leyendo de Supabase (caído) → medicación, tareas y citas vacías en Hoy y en el Historial, sin ningún aviso.
+- **Interruptor único:** `GRUPOS_DISPONIBLES` vive ahora en `src/lib/grupoConfig.ts` (ya no en `grupo/page.tsx`). Con `false`, `getSesion()` devuelve `null` y toda la app trabaja en local; la sesión guardada (`cf_grupo_sesion`) **no se borra** (`getSesionGuardada()` la lee), así que al reactivar cada dispositivo vuelve a su grupo. Ojo: lo apuntado en local mientras tanto NO se sube solo al grupo al reactivar.
+- Lo que Fran apuntó en el grupo sigue en Supabase (pausado). En local solo ve lo que había en el móvil antes de crear el grupo (al crearlo se copió, no se borró).
+- **Avisos** (`components/layout/AvisoGrupo.tsx`): "Tu grupo familiar está en pausa" (se puede cerrar, `cf_aviso_grupo_pausa_visto`) y, cuando los grupos estén activos, "No se ha podido conectar con tu grupo familiar" si falla la carga (los hooks llaman a `avisarFalloGrupo()`). En Hoy se pinta bajo el hero (`enHoy`).
+- **Solicitudes:** formulario en Familia (`components/grupo/SolicitarGrupo.tsx`) → `POST /api/solicitar-grupo` → correo a Fran vía Resend (REST, sin SDK) desde `avisos@mail.mygardenlive.com`. Variables en Vercel production: `RESEND_API_KEY` (se reutiliza la clave del SaaS Peluquerías, restringida a mail.mygardenlive.com — si se rota allí, actualizarla aquí) y `AVISOS_EMAIL`. Campo trampa `web` contra bots. Probado: el correo llega (asunto "Solicitud de grupo familiar — …").
+- Textos de `/guia` y del chat de ayuda actualizados: Familia "no disponible por ahora, se puede solicitar".
+- **Al reactivar** además de lo de arriba: revertir esos textos de `/guia` y `chat-guia`, y responder a quien dejó su correo.

@@ -7,6 +7,7 @@ import { TareasSection } from "@/components/hoy/TareasSection";
 import { CitasSection } from "@/components/hoy/CitasSection";
 import { MedicionesSection } from "@/components/hoy/MedicionesSection";
 import { TarjetaGuia } from "@/components/hoy/TarjetaGuia";
+import { AvisoGrupo } from "@/components/layout/AvisoGrupo";
 
 function LinkHistorial({ href, texto, claseColor }: { href: string; texto: string; claseColor: string }) {
   return (
@@ -66,6 +67,7 @@ export default function HoyPage() {
         </div>
       </div>
 
+      <AvisoGrupo enHoy />
       <TarjetaGuia />
 
       <div className="space-y-4">

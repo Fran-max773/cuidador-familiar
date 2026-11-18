@@ -140,12 +140,11 @@ const secciones = [
     linkTexto: "Ve a Familia",
     titulo: "Familia",
     descripcion:
-      "Comparte el cuidado con otros familiares. Todos ven en tiempo real las mismas medicaciones, tareas y citas.",
+      "Compartir el cuidado con otros familiares para que todos veáis las mismas medicaciones, tareas y citas. Ahora mismo no está disponible.",
     tips: [
-      "Crea un grupo y comparte el código con tus familiares",
-      "Los cambios de un miembro se reflejan al instante en todos los móviles",
-      "Las tareas pueden asignarse a personas específicas del grupo",
-      "Si te asignan una tarea, verás un aviso y un punto en la pestaña 'Hoy'",
+      "Puedes pedir que se active con el botón «Solicitar que se active»",
+      "Si dejas tu correo, te avisaremos cuando vuelva a estar disponible",
+      "Mientras tanto, todo lo que apuntes se guarda en tu móvil y funciona con normalidad",
     ],
   },
   {
