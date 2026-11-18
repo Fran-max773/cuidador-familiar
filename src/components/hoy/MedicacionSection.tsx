@@ -74,7 +74,7 @@ export function MedicacionSection() {
   const abrirNuevo = () => {
     setEditandoId(null);
     setNombre(""); setHoras(["08:00"]); setDosis("");
-    setDuracionIdx(2); setFechaFinCustom("");
+    setDuracionIdx(2); setFechaFinCustom(""); setAviso("");
     setModalAbierto(true);
   };
 
@@ -86,6 +86,7 @@ export function MedicacionSection() {
     // Calcular duración aproximada para preseleccionar botón
     setDuracionIdx(-1);
     setFechaFinCustom(med.fechaFin);
+    setAviso("");
     setModalAbierto(true);
   };
 
@@ -97,8 +98,13 @@ export function MedicacionSection() {
 
   const aplicarAtajo = (horasAtajo: string[]) => setHoras([...horasAtajo]);
 
+  // Aviso al pulsar Guardar con datos obligatorios sin rellenar (en vez de no hacer nada)
+  const [aviso, setAviso] = useState("");
+
   const handleGuardar = () => {
-    if (!nombre.trim() || horas.length === 0) return;
+    if (!nombre.trim()) { setAviso("Para guardar, escribe el nombre del medicamento."); return; }
+    if (horas.length === 0 || horas.some((h) => !h)) { setAviso("Para guardar, revisa la hora de toma: no puede estar vacía."); return; }
+    setAviso("");
     const horasOrdenadas = Array.from(new Set(horas)).sort();
     const fechaFin =
       duracionIdx === -1
@@ -359,9 +365,13 @@ export function MedicacionSection() {
             <input
               type="text"
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={(e) => { setNombre(e.target.value); if (aviso) setAviso(""); }}
               placeholder="Ej: Donepezilo"
-              className="w-full px-4 py-3 rounded-xl border border-beige-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-sage-300"
+              aria-invalid={!!aviso && !nombre.trim() ? true : undefined}
+              className={cn(
+                "w-full px-4 py-3 rounded-xl border text-gray-800 focus:outline-none focus:ring-2 focus:ring-sage-300",
+                aviso && !nombre.trim() ? "border-red-400 bg-red-50" : "border-beige-200"
+              )}
               autoFocus
             />
           </div>
@@ -474,6 +484,12 @@ export function MedicacionSection() {
               )}
             </div>
           </div>
+
+          {aviso && (
+            <p role="alert" className="text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-xl py-2 pl-3 pr-16">
+              {aviso}
+            </p>
+          )}
 
           {/* Acciones */}
           <div className="flex gap-3 pt-1">

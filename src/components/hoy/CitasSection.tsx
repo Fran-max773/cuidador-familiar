@@ -37,12 +37,25 @@ export function CitasSection() {
     notas: "",
   });
 
+  // Campos obligatorios que faltan al pulsar Guardar (se avisa en vez de no hacer nada)
+  const [faltan, setFaltan] = useState<{ titulo: boolean; fecha: boolean } | null>(null);
+
+  const cerrarModal = () => { setModalAbierto(false); setFaltan(null); };
+
   const handleGuardar = () => {
-    if (!form.titulo.trim() || !form.fecha) return;
+    const sinTitulo = !form.titulo.trim();
+    const sinFecha = !form.fecha;
+    if (sinTitulo || sinFecha) { setFaltan({ titulo: sinTitulo, fecha: sinFecha }); return; }
     agregar(form);
     setForm({ tipo: "medico", titulo: "", fecha: "", hora: "10:00", lugar: "", notas: "" });
-    setModalAbierto(false);
+    cerrarModal();
   };
+
+  const mensajeFalta = faltan
+    ? faltan.titulo && faltan.fecha ? "Para guardar la cita, escribe una descripción y elige la fecha."
+      : faltan.titulo ? "Para guardar la cita, escribe una descripción (por ejemplo: «Revisión con el Dr. García»)."
+      : "Para guardar la cita, elige la fecha."
+    : "";
 
   const citasHoy = citas.filter((c) => c.fecha === hoy && !c.realizada);
 
@@ -207,7 +220,7 @@ export function CitasSection() {
         </div>
       )}
 
-      <Modal abierto={modalAbierto} onCerrar={() => setModalAbierto(false)} titulo="Añadir cita">
+      <Modal abierto={modalAbierto} onCerrar={cerrarModal} titulo="Añadir cita">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
@@ -232,9 +245,13 @@ export function CitasSection() {
             <input
               type="text"
               value={form.titulo}
-              onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+              onChange={(e) => { setForm((f) => ({ ...f, titulo: e.target.value })); setFaltan((x) => x && { ...x, titulo: false }); }}
               placeholder="Ej: Revisión con el Dr. García"
-              className="w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300"
+              aria-invalid={faltan?.titulo || undefined}
+              className={cn(
+                "w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sage-300",
+                faltan?.titulo ? "border-red-400 bg-red-50" : "border-beige-200"
+              )}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -243,8 +260,12 @@ export function CitasSection() {
               <input
                 type="date"
                 value={form.fecha}
-                onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))}
-                className="w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300"
+                onChange={(e) => { setForm((f) => ({ ...f, fecha: e.target.value })); setFaltan((x) => x && { ...x, fecha: false }); }}
+                aria-invalid={faltan?.fecha || undefined}
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sage-300",
+                  faltan?.fecha ? "border-red-400 bg-red-50" : "border-beige-200"
+                )}
               />
             </div>
             <div>
@@ -267,8 +288,13 @@ export function CitasSection() {
               className="w-full px-4 py-3 rounded-xl border border-beige-200 focus:outline-none focus:ring-2 focus:ring-sage-300"
             />
           </div>
+          {mensajeFalta && (faltan?.titulo || faltan?.fecha) && (
+            <p role="alert" className="text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-xl py-2 pl-3 pr-16">
+              {mensajeFalta}
+            </p>
+          )}
           <div className="flex gap-3 pt-2">
-            <Button variante="secundario" className="flex-1" onClick={() => setModalAbierto(false)}>
+            <Button variante="secundario" className="flex-1" onClick={cerrarModal}>
               Cancelar
             </Button>
             <Button className="flex-1" onClick={handleGuardar}>
