@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Trash2, MapPin, Check, Clock } from "lucide-react";
+import { Trash2, MapPin, Check, Clock, CalendarPlus } from "lucide-react";
 import { useCitas } from "@/hooks/useCitas";
+import { urlGoogleCalendar, descargarIcs } from "@/lib/calendario";
 import type { Cita } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -164,6 +165,25 @@ export function CitasSection() {
                       </span>
                     )}
                   </p>
+                  {/* Pasar al calendario (solo citas que aún no han pasado) */}
+                  {!cita.realizada && cita.fecha >= hoy && (
+                    <div className="flex flex-col items-start mt-1 -ml-2">
+                      <a
+                        href={urlGoogleCalendar(cita)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-sky-600 hover:text-sky-700 px-2 py-2 rounded-lg"
+                      >
+                        <CalendarPlus size={13} /> Google Calendar
+                      </a>
+                      <button
+                        onClick={() => descargarIcs(cita)}
+                        className="whitespace-nowrap text-xs text-gray-500 hover:text-gray-700 underline px-2 py-1.5 rounded-lg"
+                      >
+                        Otro calendario
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Eliminar */}
@@ -177,6 +197,12 @@ export function CitasSection() {
               </Card>
             );
           })}
+          {citas.some((c) => !c.realizada && c.fecha >= hoy) && (
+            <p className="text-xs text-gray-400 text-center px-2 pt-1 leading-relaxed">
+              «Otro calendario» incluye avisos 1 día y 2 horas antes. Con Google Calendar, los avisos son los que tengas
+              configurados en tu calendario.
+            </p>
+          )}
         </div>
       )}
 

@@ -68,6 +68,7 @@ const secciones = [
     tips: [
       "Toca el check-circle para marcar una cita como realizada",
       "Añade el lugar de la cita para llevar la información a la consulta",
+      "Pásala a tu calendario con «Google Calendar» u «Otro calendario» (este incluye avisos 1 día y 2 horas antes)",
       "El historial permite imprimirlo en A4 para el médico",
     ],
   },
