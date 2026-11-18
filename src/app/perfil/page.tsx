@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { User, Save, Phone, Stethoscope, Pill, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { CopiaSeguridad } from "@/components/perfil/CopiaSeguridad";
 import type { PerfilFamiliar, ContactoEmergencia } from "@/types";
 
 const PERFIL_VACIO: PerfilFamiliar = {
@@ -199,6 +200,8 @@ export default function PerfilPage() {
         <Save size={18} />
         {guardado ? "¡Guardado!" : "Guardar perfil"}
       </Button>
+
+      <CopiaSeguridad />
     </div>
   );
 }
