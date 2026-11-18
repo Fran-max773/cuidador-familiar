@@ -99,7 +99,7 @@ export function CitasSection() {
               <Card
                 key={cita.id}
                 className={cn(
-                  "flex items-center gap-3",
+                  "flex flex-wrap items-center gap-3",
                   pasada && !cita.realizada && "border-amber-200 bg-amber-50/40",
                   cita.realizada && "opacity-60"
                 )}
@@ -165,25 +165,6 @@ export function CitasSection() {
                       </span>
                     )}
                   </p>
-                  {/* Pasar al calendario (solo citas que aún no han pasado) */}
-                  {!cita.realizada && cita.fecha >= hoy && (
-                    <div className="flex flex-col items-start mt-1 -ml-2">
-                      <a
-                        href={urlGoogleCalendar(cita)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-sky-600 hover:text-sky-700 px-2 py-2 rounded-lg"
-                      >
-                        <CalendarPlus size={13} /> Google Calendar
-                      </a>
-                      <button
-                        onClick={() => descargarIcs(cita)}
-                        className="whitespace-nowrap text-xs text-gray-500 hover:text-gray-700 underline px-2 py-1.5 rounded-lg"
-                      >
-                        Otro calendario
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 {/* Eliminar */}
@@ -194,11 +175,31 @@ export function CitasSection() {
                 >
                   <Trash2 size={16} />
                 </button>
+
+                {/* Pasar al calendario (solo citas que aún no han pasado): fila propia, botones grandes y separados */}
+                {!cita.realizada && cita.fecha >= hoy && (
+                  <div className="basis-full grid grid-cols-2 gap-3 pt-1">
+                    <a
+                      href={urlGoogleCalendar(cita)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 min-h-[48px] rounded-xl border border-sky-200 bg-sky-50 text-sky-700 text-sm font-medium active:scale-95 transition-transform"
+                    >
+                      <CalendarPlus size={18} /> Google Calendar
+                    </a>
+                    <button
+                      onClick={() => descargarIcs(cita)}
+                      className="flex items-center justify-center min-h-[48px] rounded-xl border border-beige-200 bg-white text-gray-600 text-sm font-medium active:scale-95 transition-transform"
+                    >
+                      Otro calendario
+                    </button>
+                  </div>
+                )}
               </Card>
             );
           })}
           {citas.some((c) => !c.realizada && c.fecha >= hoy) && (
-            <p className="text-xs text-gray-400 text-center px-2 pt-1 leading-relaxed">
+            <p className="text-sm text-gray-500 text-center px-2 pt-1 leading-relaxed">
               «Otro calendario» incluye avisos 1 día y 2 horas antes. Con Google Calendar, los avisos son los que tengas
               configurados en tu calendario.
             </p>
